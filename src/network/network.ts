@@ -1,5 +1,3 @@
-import { assert } from "@vue/compiler-core";
-
 export interface Neuron {
   weights: number[]; // Weights on inputs, eg input layer has none
   bias: number;
@@ -24,9 +22,9 @@ export class Network {
       for (let j = 0; j < sizes[i]; j++) {
         const weights = [];
         for (let j = 0; j < weightsSize; j++) {
-          weights.push(Math.random());
+          weights.push(Math.random() * 2 - 1);
         }
-        const bias = i == 0 ? 0 : Math.random();
+        const bias = i == 0 ? 0 : Math.random() * 2 - 1;
         const neuron: Neuron = {
           weights: weights,
           bias: bias,
