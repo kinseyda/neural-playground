@@ -16,6 +16,10 @@ function sigmoidDerivative(n: number) {
   return sigmoid(n) * (1 - sigmoid(n));
 }
 
+function dotProduct(a: number[], b: number[]): number {
+  return a.map((x, i) => a[i] * b[i]).reduce((m, n) => m + n);
+}
+
 export interface TrainingExample {
   inputs: number[];
   expectedOutputs: number[];
@@ -57,44 +61,39 @@ export class Network {
     this.learningRate = learningRate;
   }
 
-  resetNeuronActivations() {
-    for (const layer of this.neurons) {
-      for (const n of layer) {
+  resetNeurons() {
+    for (let i = 0; i < this.neurons.length; i++) {
+      const layer = this.neurons[i];
+      for (let j = 0; j < layer.length; j++) {
+        const n = layer[j];
+        n.z = undefined;
         n.activation = undefined;
+        n.error = undefined;
+        n.biasDelta = 0;
+        (n.weightDeltas = []).length = n.weights.length;
+        n.weightDeltas.fill(0);
       }
     }
   }
 
   feed(inputs: number[]): number[] {
-    this.resetNeuronActivations();
-    for (let i = 0; i < this.neurons[0].length; i++) {
-      this.neurons[0][i].activation = inputs[i];
-    }
-    const outputs: number[] = [];
-    for (let i = 0; i < this.neurons[this.neurons.length - 1].length; i++) {
-      this.recSetActivation(this.neurons.length - 1, i);
-      outputs.push(this.neurons[this.neurons.length - 1][i].activation || 0);
-    }
-    return outputs;
-  }
-
-  recSetActivation(layer: number, nIndex: number) {
-    if (this.neurons[layer][nIndex].activation !== undefined) {
-      return;
-    }
-    let z = 0;
-    for (let i = 0; i < this.neurons[layer][nIndex].weights.length; i++) {
-      this.recSetActivation(layer - 1, i);
-      const prevActiv = this.neurons[layer - 1][i].activation;
-      if (prevActiv === undefined) {
-        throw new TypeError("Recursive activation function failed!");
+    this.resetNeurons();
+    for (let i = 0; i < this.neurons.length; i++) {
+      const layer = this.neurons[i];
+      for (let j = 0; j < layer.length; j++) {
+        const neuron = layer[j];
+        if (i == 0) {
+          neuron.activation = inputs[j];
+        } else {
+          neuron.z = dotProduct(
+            neuron.weights,
+            this.neurons[i - 1].map((x) => x.activation || 0)
+          );
+          neuron.activation = sigmoid(neuron.z);
+        }
       }
-      z += prevActiv * this.neurons[layer][nIndex].weights[i];
     }
-    z += this.neurons[layer][nIndex].bias;
-    this.neurons[layer][nIndex].z = z;
-    this.neurons[layer][nIndex].activation = sigmoid(z);
-    return;
+    return this.neurons[this.neurons.length - 1].map((x) => x.activation || 0);
   }
 
   /**
@@ -135,14 +134,14 @@ export class Network {
           n.error = err * sigmoidDerivative(n.z);
         }
       }
-      for (let j = 1; j < layer.length; j++) {
+      for (let j = 0; j < layer.length; j++) {
         const n = layer[j];
         if (n.error === undefined) {
           throw new EvalError("BP issue");
         }
         layer[j].biasDelta -= n.error * this.learningRate;
         for (let k = 0; k < n.weights.length; k++) {
-          const inputActiv = this.neurons[j - 1][k].activation;
+          const inputActiv = this.neurons[i - 1][k].activation;
           if (inputActiv === undefined) {
             throw new EvalError("BP issue");
           }
@@ -165,6 +164,7 @@ export class Network {
   }
   train(batch: TrainingExample[]) {
     for (const ex of batch) {
+      console.log("Training!");
       this.backProp(ex.inputs, ex.expectedOutputs);
     }
     this.updateNeurons(1 / batch.length);
