@@ -1,5 +1,6 @@
 import EmnistImage from "@/data/emnist-image";
 import { Network, TrainingExample } from "./network";
+import { formatTimeString } from "@/format";
 
 function oneHotOutput(outputClass: number): number[] {
   const out = [];
@@ -11,28 +12,31 @@ function oneHotOutput(outputClass: number): number[] {
 
 export class EmnistNet extends Network {
   emnist: EmnistImage[] | undefined;
+  testEmnist: EmnistImage[] | undefined;
 
   constructor() {
-    super([784, 16, 16, 46], 1);
+    super([784, 16, 16, 10], 1);
     this.emnist = undefined;
   }
 
   loadEmnist() {
-    import("@/data/emnist_train_data.json").then(({ default: module }) => {
-      this.emnist = module;
+    import("@/data/digits_train_data.json").then(({ default: module }) => {
+      this.emnist = module as EmnistImage[];
+    });
+    import("@/data/digits_test_data.json").then(({ default: module }) => {
+      this.testEmnist = module as EmnistImage[];
     });
   }
+
   runNBatches(n: number, batchSize: number) {
     for (let i = 0; i < n; i++) {
-      console.log(`Batch number: ${i}`);
+      console.log(`Batch number: ${i}/${n}`);
       const timeIn = Date.now();
       this.runMiniBatch(batchSize);
       const timeLastBatch = Date.now() - timeIn;
-      console.log(
-        `Remaining time (ish): ${
-          ((batchSize - (i + 1)) * timeLastBatch) / 1000
-        }s`
-      );
+      const msRemaining = (n - (i + 1)) * timeLastBatch;
+      console.log(`Batch ${i} took ${formatTimeString(timeLastBatch)}`);
+      console.log(`Remaining: ${formatTimeString(msRemaining)}`);
     }
   }
   runMiniBatch(n: number) {
@@ -43,28 +47,18 @@ export class EmnistNet extends Network {
     const batch = this.generateMiniBatch(100);
     let corrects = 0;
     for (let i = 0; i < batch.length; i++) {
-      console.log(i);
       this.feed(batch[i].inputs);
       if (batch[i].expectedOutputs[this.getHottestOutput()] == 1) {
         corrects += 1;
+        console.log(
+          `Correct! ${i}, label=${batch[i].expectedOutputs.indexOf(1)}`
+        );
       }
     }
     return corrects / batch.length;
   }
   getHottestOutput(): number {
-    const outputs = this.neurons[this.neurons.length - 1];
-    let max = 0;
-    for (let i = 0; i < outputs.length; i++) {
-      const outI = outputs[i].activation,
-        outM = outputs[max].activation;
-      if (outI === undefined || outM === undefined) {
-        throw new EvalError("Activation not defined yet!");
-      }
-      if (outI > outM) {
-        max = i;
-      }
-    }
-    return max;
+    return this.outputActivations.indexOf(Math.max(...this.outputActivations));
   }
   generateMiniBatch(size: number): TrainingExample[] {
     const result: TrainingExample[] = [];

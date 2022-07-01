@@ -1,7 +1,10 @@
 <template>
   <div id="outer">
     <div id="number-canvas">
-      <number-canvas v-on:imageChange="imageChange"></number-canvas>
+      <number-canvas
+        ref="numCan"
+        v-on:imageChange="imageChange"
+      ></number-canvas>
       <button @click="net.loadEmnist()">Load</button>
       <button @click="net.runMiniBatch(100)">Train</button>
       <button @click="curAccuracy = net.getPredictedAccuracy()">
@@ -9,18 +12,19 @@
       </button>
       <button @click="reFeed">ReFeed</button>
       <button @click="runLots">Run lots of trainings</button>
-      <p v-if="net.emnist">Accuracy: {{ curAccuracy }}</p>
+      <button @click="putExample">Random Example Image</button>
+      <p v-if="net.emnist">Accuracy out of 100 examples: {{ curAccuracy }}</p>
       <p v-if="net.emnist">
         Hottest: {{ String.fromCharCode(emnistLabels[net.getHottestOutput()]) }}
       </p>
     </div>
     <div id="outputs">
       <ol start="0">
-        <li v-for="(out, index) in output" :key="out.activation">
+        <li v-for="(out, index) in net.outputActivations" :key="out.index">
           {{ emnistLabels[index] }}/<b>{{
             String.fromCharCode(emnistLabels[index])
           }}</b
-          >: {{ out.toFixed(25) }}
+          >: <b>{{ out.toFixed(2) }}</b>
         </li>
       </ol>
     </div>
@@ -32,6 +36,7 @@ import { defineComponent } from "vue";
 import NumberCanvas from "./components/NumberCanvas.vue";
 import { EmnistNet } from "./network/emnist-net";
 import { emnistLabels } from "./data/emnist-labels";
+
 export default defineComponent({
   name: "App",
   components: {
@@ -43,7 +48,6 @@ export default defineComponent({
       timeOfChange: 0,
       mostRecentUpdate: 0,
       net: new EmnistNet(),
-      output: [] as number[],
       emnistLabels: emnistLabels,
       curAccuracy: 0,
     };
@@ -58,12 +62,17 @@ export default defineComponent({
         Date.now() - this.timeOfChange >= 250 &&
         this.timeOfChange != this.mostRecentUpdate
       ) {
-        this.output = this.net.feed(this.canvasData);
+        this.net.feed(this.canvasData);
         this.mostRecentUpdate = this.timeOfChange;
       }
     },
     runLots() {
-      this.net.runNBatches(100, 100);
+      this.net.runNBatches(600, 100);
+    },
+    putExample() {
+      const ex = this.net.generateMiniBatch(1)[0];
+      console.log(ex.expectedOutputs.indexOf(1));
+      (this.$refs["numCan"] as typeof NumberCanvas).replaceImage(ex.inputs);
     },
   },
   mounted() {

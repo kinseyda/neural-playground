@@ -14,6 +14,19 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 
+/**
+ * Must be square (width = sqrt(length))
+ */
+function flipArrayAlongDiagonal(arr: number[], width: number): number[] {
+  const newVals = [];
+  for (let i = 0; i < width; i++) {
+    for (let j = 0; j < width; j++) {
+      newVals.push(arr[j * 28 + i]);
+    }
+  }
+  return newVals;
+}
+
 export default defineComponent({
   name: "NumberCanvas",
   props: {},
@@ -35,11 +48,12 @@ export default defineComponent({
     },
     setImageData() {
       if (this.canvasContext) {
-        const pixels = [];
+        let pixels = [];
         const data = this.canvasContext.getImageData(0, 0, 28, 28).data;
         for (let i = 0; i < 784; i++) {
           pixels.push(data[i * 4 + 3] / 255);
         }
+        pixels = flipArrayAlongDiagonal(pixels, 28);
         if (this.imageData != pixels) {
           this.imageData = pixels;
           this.$emit("imageChange", pixels);
@@ -88,6 +102,24 @@ export default defineComponent({
         );
         this.setImageData();
       }
+    },
+    replaceImage(vals: number[]) {
+      if (!this.canvasContext) {
+        console.log("ERROR");
+        return;
+      }
+      vals = flipArrayAlongDiagonal(vals, 28);
+      const imgData = [];
+      for (const val of vals) {
+        for (let i = 0; i < 3; i++) {
+          imgData.push(1);
+        }
+        imgData.push(val);
+      }
+      const dataImage = this.canvasContext.createImageData(28, 28);
+      dataImage.data.set(imgData);
+      this.canvasContext.putImageData(dataImage, 0, 0);
+      this.setImageData();
     },
   },
   mounted() {

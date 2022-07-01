@@ -1,3 +1,6 @@
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { formatTimeString } from "@/format";
+
 export interface Neuron {
   weights: number[]; // Weights on inputs, eg input layer has none
   bias: number;
@@ -16,8 +19,23 @@ function sigmoidDerivative(n: number) {
   return sigmoid(n) * (1 - sigmoid(n));
 }
 
+// function reLu(n: number): number {
+//   return Math.max(0, n);
+// }
+
+// function reLuDerivative(n: number) {
+//   return n > 0 ? 1 : 0;
+// }
+
+function squish(n: number): number {
+  return sigmoid(n);
+}
+function squishDerivative(n: number): number {
+  return sigmoidDerivative(n);
+}
+
 function dotProduct(a: number[], b: number[]): number {
-  return a.map((x, i) => a[i] * b[i]).reduce((m, n) => m + n);
+  return a.map((_, i) => a[i] * b[i]).reduce((m, n) => m + n);
 }
 
 export interface TrainingExample {
@@ -61,6 +79,10 @@ export class Network {
     this.learningRate = learningRate;
   }
 
+  get outputActivations() {
+    return this.neurons[this.neurons.length - 1].map((x) => x.activation || 0);
+  }
+
   resetNeurons() {
     for (let i = 0; i < this.neurons.length; i++) {
       const layer = this.neurons[i];
@@ -76,8 +98,7 @@ export class Network {
     }
   }
 
-  feed(inputs: number[]): number[] {
-    this.resetNeurons();
+  feed(inputs: number[]) {
     for (let i = 0; i < this.neurons.length; i++) {
       const layer = this.neurons[i];
       for (let j = 0; j < layer.length; j++) {
@@ -89,11 +110,10 @@ export class Network {
             neuron.weights,
             this.neurons[i - 1].map((x) => x.activation || 0)
           );
-          neuron.activation = sigmoid(neuron.z);
+          neuron.activation = squish(neuron.z);
         }
       }
     }
-    return this.neurons[this.neurons.length - 1].map((x) => x.activation || 0);
   }
 
   /**
@@ -102,9 +122,12 @@ export class Network {
    * @param expectedOutputs
    */
   backProp(inputs: number[], expectedOutputs: number[]) {
+    // const startTime = Date.now();
     this.feed(inputs);
-
+    // const feedTime = Date.now();
+    // console.log(`feedTime: ${formatTimeString(feedTime - startTime)}`);
     for (let i = this.neurons.length - 1; i > 0; i--) {
+      //   const iterStartTime = Date.now();
       const layer = this.neurons[i];
       if (i == this.neurons.length - 1) {
         // Output layer errors
@@ -114,26 +137,27 @@ export class Network {
             throw new EvalError("BP issue");
           }
           const dCda = n.activation - expectedOutputs[j];
-          n.error = dCda * sigmoidDerivative(n.z);
+          n.error = dCda * squishDerivative(n.z);
         }
       } else {
         // Hidden layer errors
         for (let j = 0; j < layer.length; j++) {
-          let err = 0;
-          for (let k = 0; k < this.neurons[i + 1].length; k++) {
-            const n = this.neurons[i + 1][k];
-            if (n.error === undefined) {
-              throw new EvalError("BP issue");
-            }
-            err += n.weights[j] * n.error;
-          }
+          const foreErr = this.neurons[i + 1]
+            .map((n) => n.weights[j] * (n.error || 0))
+            .reduce((a, b) => {
+              return a + b;
+            });
           const n = layer[j];
           if (n.z === undefined) {
             throw new EvalError("BP issue");
           }
-          n.error = err * sigmoidDerivative(n.z);
+          n.error = foreErr * squishDerivative(n.z);
         }
       }
+      //   const iterMidTime = Date.now();
+      //   console.log(
+      //     `iterMidTime${i}: ${formatTimeString(iterMidTime - iterStartTime)}`
+      //   );
       for (let j = 0; j < layer.length; j++) {
         const n = layer[j];
         if (n.error === undefined) {
@@ -148,6 +172,8 @@ export class Network {
           layer[j].weightDeltas[k] -= n.error * inputActiv * this.learningRate;
         }
       }
+      //   const iterTime = Date.now();
+      //   console.log(`iterTime${i}: ${formatTimeString(iterTime - iterMidTime)}`);
     }
   }
   updateNeurons(mult: number) {
@@ -163,6 +189,7 @@ export class Network {
     }
   }
   train(batch: TrainingExample[]) {
+    this.resetNeurons();
     for (const ex of batch) {
       console.log("Training!");
       this.backProp(ex.inputs, ex.expectedOutputs);
