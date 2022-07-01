@@ -27,7 +27,7 @@ def convert(img_file, label_file, txt_file, n_images):
                 image_dict['data'].append(val)
             images.append(image_dict)
         except TypeError:
-            print("Ran out of bytes at file %d image %d" % i)
+            print("Ran out of bytes at image %d" % i)
             break
     txt_f.write(json.dumps(images))
     img_f.close()
@@ -50,9 +50,9 @@ def main():
     # n_images = 10000
     print("\nCreating %d MNIST train images from binary files "
           % n_images)
-    convert("./emnist-balanced-train-images-idx3-ubyte",
-            "./emnist-balanced-train-labels-idx1-ubyte",
-            "../src/data/emnist_train_data.json", n_images)
+    convert("./balanced/emnist-balanced-test-images-idx3-ubyte",
+            "./balanced/emnist-balanced-test-labels-idx1-ubyte",
+            "../src/data/emnist_test_data.json", n_images)
 
 
 if __name__ == "__main__":
