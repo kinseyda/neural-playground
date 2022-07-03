@@ -6,7 +6,7 @@
         v-on:imageChange="imageChange"
       ></number-canvas>
       <button @click="net.loadEmnist()">Load</button>
-      <button @click="net.runMiniBatch(100)">Train</button>
+      <button @click="net.runMiniBatch(1)">Train</button>
       <button @click="curAccuracy = net.getPredictedAccuracy()">
         Predict Accuracy
       </button>
@@ -15,12 +15,13 @@
       <button @click="putExample">Random Example Image</button>
       <p v-if="net.emnist">Accuracy out of 100 examples: {{ curAccuracy }}</p>
       <p v-if="net.emnist">
-        Hottest: {{ String.fromCharCode(emnistLabels[net.getHottestOutput()]) }}
+        Hottest:
+        {{ String.fromCharCode(emnistLabels[getHottest(mostRecentResult)]) }}
       </p>
     </div>
     <div id="outputs">
       <ol start="0">
-        <li v-for="(out, index) in net.outputActivations" :key="out.index">
+        <li v-for="(out, index) in mostRecentResult" :key="out.index">
           {{ emnistLabels[index] }}/<b>{{
             String.fromCharCode(emnistLabels[index])
           }}</b
@@ -34,7 +35,7 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import NumberCanvas from "./components/NumberCanvas.vue";
-import { EmnistNet } from "./network/emnist-net";
+import { EmnistNet, getHottest } from "./network/emnist-net";
 import { emnistLabels } from "./data/emnist-labels";
 
 export default defineComponent({
@@ -48,6 +49,7 @@ export default defineComponent({
       timeOfChange: 0,
       mostRecentUpdate: 0,
       net: new EmnistNet(),
+      mostRecentResult: [] as number[],
       emnistLabels: emnistLabels,
       curAccuracy: 0,
     };
@@ -62,7 +64,8 @@ export default defineComponent({
         Date.now() - this.timeOfChange >= 250 &&
         this.timeOfChange != this.mostRecentUpdate
       ) {
-        this.net.feed(this.canvasData);
+        const activs = this.net.feed(this.canvasData)["activations"];
+        this.mostRecentResult = activs[activs.length - 1];
         this.mostRecentUpdate = this.timeOfChange;
       }
     },
@@ -73,6 +76,9 @@ export default defineComponent({
       const ex = this.net.generateMiniBatch(1)[0];
       console.log(ex.expectedOutputs.indexOf(1));
       (this.$refs["numCan"] as typeof NumberCanvas).replaceImage(ex.inputs);
+    },
+    getHottest(arr: number[]) {
+      return getHottest(arr);
     },
   },
   mounted() {

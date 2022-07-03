@@ -10,6 +10,10 @@ function oneHotOutput(outputClass: number): number[] {
   return out;
 }
 
+export function getHottest(arr: number[]) {
+  return arr.indexOf(Math.max(...arr));
+}
+
 export class EmnistNet extends Network {
   emnist: EmnistImage[] | undefined;
   testEmnist: EmnistImage[] | undefined;
@@ -47,8 +51,10 @@ export class EmnistNet extends Network {
     const batch = this.generateMiniBatch(100);
     let corrects = 0;
     for (let i = 0; i < batch.length; i++) {
-      this.feed(batch[i].inputs);
-      if (batch[i].expectedOutputs[this.getHottestOutput()] == 1) {
+      const activs = this.feed(batch[i].inputs)["activations"];
+      if (
+        batch[i].expectedOutputs[getHottest(activs[activs.length - 1])] == 1
+      ) {
         corrects += 1;
         console.log(
           `Correct! ${i}, label=${batch[i].expectedOutputs.indexOf(1)}`
@@ -56,9 +62,6 @@ export class EmnistNet extends Network {
       }
     }
     return corrects / batch.length;
-  }
-  getHottestOutput(): number {
-    return this.outputActivations.indexOf(Math.max(...this.outputActivations));
   }
   generateMiniBatch(size: number): TrainingExample[] {
     const result: TrainingExample[] = [];

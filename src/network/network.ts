@@ -1,16 +1,6 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { formatTimeString } from "@/format";
 
-export interface Neuron {
-  weights: number[]; // Weights on inputs, eg input layer has none
-  bias: number;
-  z: number | undefined;
-  activation: number | undefined;
-  error: number | undefined; // dC/dz_{this neuron}
-  weightDeltas: number[];
-  biasDelta: number;
-}
-
 function sigmoid(n: number) {
   return 1 / (1 + Math.E ** (-1 * n));
 }
@@ -44,76 +34,58 @@ export interface TrainingExample {
 }
 
 export class Network {
-  neurons: Neuron[][];
+  weights: number[][][]; // [layer][index][weight number (index in previous layer)]
+  biases: number[][]; // [layer][index]
+  sizes: number[];
   learningRate: number;
   /**
    *
    * @param sizes - List of sizes of layers: input, hidden layer[s], output
    */
   constructor(sizes: number[], learningRate: number) {
-    this.neurons = [];
-    for (let i = 0; i < sizes.length; i++) {
-      const weightsSize = i == 0 ? 0 : sizes[i - 1];
-      const layer: Neuron[] = [];
-      for (let j = 0; j < sizes[i]; j++) {
-        const weights = [];
-        const weightDeltas = [];
+    this.sizes = sizes;
+    this.weights = [[[]]];
+    this.biases = [[]];
+    for (let curLayer = 0; curLayer < sizes.length; curLayer++) {
+      const weightsSize = curLayer == 0 ? 0 : sizes[curLayer - 1];
+      const layerWeights: number[][] = [];
+      const layerBiases: number[] = [];
+      for (let curNeuron = 0; curNeuron < sizes[curLayer]; curNeuron++) {
+        const curNeuronWeights = [];
         for (let j = 0; j < weightsSize; j++) {
-          weights.push(Math.random() * 2 - 1);
-          weightDeltas.push(0);
+          curNeuronWeights[j] = Math.random() * 2 - 1;
         }
-        const bias = i == 0 ? 0 : Math.random() * 2 - 1;
-        const neuron: Neuron = {
-          weights: weights,
-          bias: bias,
-          z: undefined,
-          activation: undefined,
-          error: undefined,
-          weightDeltas: weightDeltas,
-          biasDelta: 0,
-        };
-        layer.push(neuron);
+        const bias = curLayer == 0 ? 0 : Math.random() * 2 - 1;
+
+        layerWeights[curNeuron] = curNeuronWeights;
+        layerBiases[curNeuron] = bias;
       }
-      this.neurons.push(layer);
+      this.weights[curLayer] = layerWeights;
+      this.biases[curLayer] = layerBiases;
     }
+
     this.learningRate = learningRate;
   }
 
-  get outputActivations() {
-    return this.neurons[this.neurons.length - 1].map((x) => x.activation || 0);
-  }
-
-  resetNeurons() {
-    for (let i = 0; i < this.neurons.length; i++) {
-      const layer = this.neurons[i];
-      for (let j = 0; j < layer.length; j++) {
-        const n = layer[j];
-        n.z = undefined;
-        n.activation = undefined;
-        n.error = undefined;
-        n.biasDelta = 0;
-        (n.weightDeltas = []).length = n.weights.length;
-        n.weightDeltas.fill(0);
-      }
-    }
-  }
-
-  feed(inputs: number[]) {
-    for (let i = 0; i < this.neurons.length; i++) {
-      const layer = this.neurons[i];
-      for (let j = 0; j < layer.length; j++) {
-        const neuron = layer[j];
-        if (i == 0) {
-          neuron.activation = inputs[j];
+  feed(inputs: number[]): { activations: number[][]; zs: number[][] } {
+    const activations: number[][] = [];
+    const zs: number[][] = [];
+    for (let curLayer = 0; curLayer < this.sizes.length; curLayer++) {
+      activations[curLayer] = [];
+      zs[curLayer] = [];
+      for (let curNeuron = 0; curNeuron < this.sizes[curLayer]; curNeuron++) {
+        if (curLayer == 0) {
+          activations[curLayer][curNeuron] = inputs[curNeuron];
         } else {
-          neuron.z = dotProduct(
-            neuron.weights,
-            this.neurons[i - 1].map((x) => x.activation || 0)
+          zs[curLayer][curNeuron] = dotProduct(
+            this.weights[curLayer][curNeuron],
+            activations[curLayer - 1]
           );
-          neuron.activation = squish(neuron.z);
+          activations[curLayer][curNeuron] = squish(zs[curLayer][curNeuron]);
         }
       }
     }
+    return { activations: activations, zs: zs };
   }
 
   /**
@@ -121,79 +93,127 @@ export class Network {
    * @param inputs
    * @param expectedOutputs
    */
-  backProp(inputs: number[], expectedOutputs: number[]) {
+  backProp(
+    inputs: number[],
+    expectedOutputs: number[],
+    weightDeltas?: number[][][],
+    biasDeltas?: number[][]
+  ): { weightDeltas: number[][][]; biasDeltas: number[][] } {
+    if (
+      weightDeltas === undefined ||
+      biasDeltas === undefined ||
+      weightDeltas.length == 0 ||
+      biasDeltas.length == 0
+    ) {
+      weightDeltas = [];
+      biasDeltas = [];
+      for (let curLayer = 0; curLayer < this.sizes.length; curLayer++) {
+        weightDeltas[curLayer] = [];
+        biasDeltas[curLayer] = [];
+        for (let curNeuron = 0; curNeuron < this.sizes[curLayer]; curNeuron++) {
+          weightDeltas[curLayer][curNeuron] = [];
+          for (
+            let curWeight = 0;
+            curWeight < this.sizes[curLayer - 1] || 0;
+            curWeight++
+          ) {
+            weightDeltas[curLayer][curNeuron][curWeight] = 0;
+          }
+          biasDeltas[curLayer][curNeuron] = 0;
+        }
+      }
+    }
     // const startTime = Date.now();
-    this.feed(inputs);
+    const dict = this.feed(inputs);
+    const activations = dict["activations"],
+      zs = dict["zs"];
+    const errors: number[][] = [];
     // const feedTime = Date.now();
     // console.log(`feedTime: ${formatTimeString(feedTime - startTime)}`);
-    for (let i = this.neurons.length - 1; i > 0; i--) {
+    for (let curLayer = this.sizes.length - 1; curLayer > 0; curLayer--) {
       //   const iterStartTime = Date.now();
-      const layer = this.neurons[i];
-      if (i == this.neurons.length - 1) {
+      errors[curLayer] = [];
+      if (curLayer == this.sizes.length - 1) {
         // Output layer errors
-        for (let j = 0; j < layer.length; j++) {
-          const n = layer[j];
-          if (n.activation === undefined || n.z === undefined) {
-            throw new EvalError("BP issue");
-          }
-          const dCda = n.activation - expectedOutputs[j];
-          n.error = dCda * squishDerivative(n.z);
+        for (let curNeuron = 0; curNeuron < this.sizes[curLayer]; curNeuron++) {
+          const dCda =
+            activations[curLayer][curNeuron] - expectedOutputs[curNeuron];
+          errors[curLayer][curNeuron] =
+            dCda * squishDerivative(zs[curLayer][curNeuron]);
         }
       } else {
         // Hidden layer errors
-        for (let j = 0; j < layer.length; j++) {
-          const foreErr = this.neurons[i + 1]
-            .map((n) => n.weights[j] * (n.error || 0))
-            .reduce((a, b) => {
-              return a + b;
-            });
-          const n = layer[j];
-          if (n.z === undefined) {
-            throw new EvalError("BP issue");
+        for (let curNeuron = 0; curNeuron < this.sizes[curLayer]; curNeuron++) {
+          let foreErr = 0;
+          for (
+            let curForeNeuron = 0;
+            curForeNeuron < this.sizes[curLayer + 1];
+            curForeNeuron++
+          ) {
+            foreErr +=
+              this.weights[curLayer + 1][curForeNeuron][curNeuron] *
+              errors[curLayer + 1][curForeNeuron];
           }
-          n.error = foreErr * squishDerivative(n.z);
+          errors[curLayer][curNeuron] =
+            foreErr * squishDerivative(zs[curLayer][curNeuron]);
         }
       }
       //   const iterMidTime = Date.now();
       //   console.log(
       //     `iterMidTime${i}: ${formatTimeString(iterMidTime - iterStartTime)}`
       //   );
-      for (let j = 0; j < layer.length; j++) {
-        const n = layer[j];
-        if (n.error === undefined) {
-          throw new EvalError("BP issue");
-        }
-        layer[j].biasDelta -= n.error * this.learningRate;
-        for (let k = 0; k < n.weights.length; k++) {
-          const inputActiv = this.neurons[i - 1][k].activation;
-          if (inputActiv === undefined) {
-            throw new EvalError("BP issue");
-          }
-          layer[j].weightDeltas[k] -= n.error * inputActiv * this.learningRate;
+      for (let curNeuron = 0; curNeuron < this.sizes[curLayer]; curNeuron++) {
+        biasDeltas[curLayer][curNeuron] -=
+          errors[curLayer][curNeuron] * this.learningRate;
+        for (
+          let curWeight = 0;
+          curWeight < this.weights[curLayer][curNeuron].length;
+          curWeight++
+        ) {
+          const inputActiv = activations[curLayer - 1][curWeight];
+          weightDeltas[curLayer][curNeuron][curWeight] -=
+            errors[curLayer][curNeuron] * inputActiv * this.learningRate;
         }
       }
       //   const iterTime = Date.now();
       //   console.log(`iterTime${i}: ${formatTimeString(iterTime - iterMidTime)}`);
     }
+    return { weightDeltas: weightDeltas, biasDeltas: biasDeltas };
   }
-  updateNeurons(mult: number) {
-    for (let i = 0; i < this.neurons.length; i++) {
-      const layer = this.neurons[i];
-      for (let j = 0; j < layer.length; j++) {
-        const neuron = layer[j];
-        neuron.bias += neuron.biasDelta * mult;
-        for (let k = 0; k < neuron.weightDeltas.length; k++) {
-          neuron.weights[k] += neuron.weightDeltas[k] * mult;
+  updateNeurons(
+    weightDeltas: number[][][],
+    biasDeltas: number[][],
+    mult: number
+  ) {
+    for (let curLayer = 0; curLayer < this.sizes.length; curLayer++) {
+      for (let curNeuron = 0; curNeuron < this.sizes[curLayer]; curNeuron++) {
+        this.biases[curLayer][curNeuron] +=
+          biasDeltas[curLayer][curNeuron] * mult;
+        for (
+          let curWeight = 0;
+          curWeight < this.weights[curLayer][curNeuron].length;
+          curWeight++
+        ) {
+          this.weights[curLayer][curNeuron][curWeight] +=
+            weightDeltas[curLayer][curNeuron][curWeight] * mult;
         }
       }
     }
   }
+
   train(batch: TrainingExample[]) {
-    this.resetNeurons();
+    let weightDeltas: number[][][] = [] as number[][][],
+      biasDeltas: number[][] = [] as number[][];
     for (const ex of batch) {
-      console.log("Training!");
-      this.backProp(ex.inputs, ex.expectedOutputs);
+      const dict = this.backProp(
+        ex.inputs,
+        ex.expectedOutputs,
+        weightDeltas,
+        biasDeltas
+      );
+      weightDeltas = dict["weightDeltas"];
+      biasDeltas = dict["biasDeltas"];
     }
-    this.updateNeurons(1 / batch.length);
+    this.updateNeurons(weightDeltas, biasDeltas, 1 / batch.length);
   }
 }
