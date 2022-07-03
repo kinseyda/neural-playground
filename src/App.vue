@@ -5,7 +5,7 @@
         ref="numCan"
         v-on:imageChange="imageChange"
       ></number-canvas>
-      <button @click="net.loadEmnist()">Load</button>
+      <button @click="net.loadEmnist()">Load dataset</button>
       <button @click="net.runMiniBatch(1)">Train</button>
       <button @click="curAccuracy = net.getPredictedAccuracy()">
         Predict Accuracy
@@ -13,8 +13,10 @@
       <button @click="reFeed">ReFeed</button>
       <button @click="runLots">Run lots of trainings</button>
       <button @click="putExample">Random Example Image</button>
-      <p v-if="net.emnist">Accuracy out of 100 examples: {{ curAccuracy }}</p>
       <p v-if="net.emnist">
+        Accuracy out of 10,000 examples: {{ curAccuracy }}
+      </p>
+      <p>
         Hottest:
         {{ String.fromCharCode(emnistLabels[getHottest(mostRecentResult)]) }}
       </p>
@@ -35,6 +37,7 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import NumberCanvas from "./components/NumberCanvas.vue";
+import { feed } from "./network/network";
 import { EmnistNet, getHottest } from "./network/emnist-net";
 import { emnistLabels } from "./data/emnist-labels";
 
@@ -64,7 +67,7 @@ export default defineComponent({
         Date.now() - this.timeOfChange >= 250 &&
         this.timeOfChange != this.mostRecentUpdate
       ) {
-        const activs = this.net.feed(this.canvasData)["activations"];
+        const activs = feed(this.canvasData, this.net)["activations"];
         this.mostRecentResult = activs[activs.length - 1];
         this.mostRecentUpdate = this.timeOfChange;
       }
@@ -73,7 +76,7 @@ export default defineComponent({
       this.net.runNBatches(600, 100);
     },
     putExample() {
-      const ex = this.net.generateMiniBatch(1)[0];
+      const ex = this.net.generateMiniBatch(1, true)[0];
       console.log(ex.expectedOutputs.indexOf(1));
       (this.$refs["numCan"] as typeof NumberCanvas).replaceImage(ex.inputs);
     },
@@ -82,7 +85,7 @@ export default defineComponent({
     },
   },
   mounted() {
-    // setInterval(this.reFeed, 100);
+    setInterval(this.reFeed, 100);
   },
 });
 </script>

@@ -1,5 +1,5 @@
 import EmnistImage from "@/data/emnist-image";
-import { Network, TrainingExample } from "./network";
+import { feed, Network, train, TrainingExample } from "./network";
 import { formatTimeString } from "@/format";
 
 function oneHotOutput(outputClass: number): number[] {
@@ -44,14 +44,14 @@ export class EmnistNet extends Network {
     }
   }
   runMiniBatch(n: number) {
-    this.train(this.generateMiniBatch(n));
+    train(this.generateMiniBatch(n), this);
   }
   getPredictedAccuracy() {
     console.log("Predicting");
-    const batch = this.generateMiniBatch(100);
+    const batch = this.generateMiniBatch(10000, true);
     let corrects = 0;
     for (let i = 0; i < batch.length; i++) {
-      const activs = this.feed(batch[i].inputs)["activations"];
+      const activs = feed(batch[i].inputs, this)["activations"];
       if (
         batch[i].expectedOutputs[getHottest(activs[activs.length - 1])] == 1
       ) {
@@ -63,19 +63,23 @@ export class EmnistNet extends Network {
     }
     return corrects / batch.length;
   }
-  generateMiniBatch(size: number): TrainingExample[] {
+  generateMiniBatch(size: number, test?: boolean): TrainingExample[] {
     const result: TrainingExample[] = [];
     const indexes: number[] = [];
+    let superSet = this.emnist;
+    if (test) {
+      superSet = this.testEmnist;
+    }
     while (result.length < size) {
-      if (!this.emnist) {
+      if (!superSet) {
         throw new Error("Data set not loaded");
       }
-      const x = Math.floor(Math.random() * this.emnist.length);
+      const x = Math.floor(Math.random() * superSet.length);
       if (!(x in indexes)) {
         indexes.push(x);
         result.push({
-          inputs: this.emnist[x].data,
-          expectedOutputs: oneHotOutput(this.emnist[x].label),
+          inputs: superSet[x].data,
+          expectedOutputs: oneHotOutput(superSet[x].label),
         });
       }
     }
