@@ -44,6 +44,30 @@ function dotProduct(a: number[], b: number[]): number {
   return sum;
 }
 
+function unraveledHiddenLayerLoop(
+  weights: number[][],
+  errors: number[],
+  curNeuron: number
+) {
+  let sum = 0;
+  let i = errors.length;
+  for (; i > 7; i -= 8) {
+    sum +=
+      weights[i - 1][curNeuron] * errors[i - 1] +
+      weights[i - 2][curNeuron] * errors[i - 2] +
+      weights[i - 3][curNeuron] * errors[i - 3] +
+      weights[i - 4][curNeuron] * errors[i - 4] +
+      weights[i - 5][curNeuron] * errors[i - 5] +
+      weights[i - 6][curNeuron] * errors[i - 6] +
+      weights[i - 7][curNeuron] * errors[i - 7] +
+      weights[i - 8][curNeuron] * errors[i - 8];
+  }
+  while (i--) {
+    sum += weights[i][curNeuron] * errors[i];
+  }
+  return sum;
+}
+
 export function feed(
   inputs: number[],
   net: Network
@@ -126,16 +150,11 @@ export function backProp(
     } else {
       // Hidden layer errors
       for (let curNeuron = 0; curNeuron < sizes[curLayer]; curNeuron++) {
-        let foreErr = 0;
-        for (
-          let curForeNeuron = 0;
-          curForeNeuron < sizes[curLayer + 1];
-          curForeNeuron++
-        ) {
-          foreErr +=
-            weights[curLayer + 1][curForeNeuron][curNeuron] *
-            errors[curLayer + 1][curForeNeuron];
-        }
+        const foreErr = unraveledHiddenLayerLoop(
+          weights[curLayer + 1],
+          errors[curLayer + 1],
+          curNeuron
+        );
         errors[curLayer][curNeuron] =
           foreErr * squishDerivative(zs[curLayer][curNeuron]);
       }
@@ -235,24 +254,22 @@ export class Network {
     }
   }
 
-  //   feed(inputs: number[]): { activations: number[][]; zs: number[][] } {
-  //     return feed(inputs, this.weights, this.biases, this.sizes);
-  //   }
+  /**
+   * Use this version only when speed isnt super important, eg when running the function just once and outside of a loop
+   */
+  feed(inputs: number[]): { activations: number[][]; zs: number[][] } {
+    return feed(inputs, this);
+  }
 
-  //   backProp(
-  //     inputs: number[],
-  //     expectedOutputs: number[],
-  //     weightDeltas?: number[][][],
-  //     biasDeltas?: number[][]
-  //   ): { weightDeltas: number[][][]; biasDeltas: number[][] } {
-  //     return backProp(
-  //       inputs,
-  //       expectedOutputs,
-  //       this.weights,
-  //       this.biases,
-  //       this.sizes,
-  //       weightDeltas,
-  //       biasDeltas
-  //     );
-  //   }
+  /**
+   * Use this version only when speed isnt super important, eg when running the function just once and outside of a loop
+   */
+  backProp(
+    inputs: number[],
+    expectedOutputs: number[],
+    weightDeltas?: number[][][],
+    biasDeltas?: number[][]
+  ): { weightDeltas: number[][][]; biasDeltas: number[][] } {
+    return backProp(inputs, expectedOutputs, this, weightDeltas, biasDeltas);
+  }
 }
