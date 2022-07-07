@@ -1,5 +1,6 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { formatTimeString } from "@/format";
+import { longForLoop } from "@/long-loop";
 
 function sigmoid(n: number) {
   return 1 / (1 + Math.E ** (-1 * n));
@@ -175,21 +176,37 @@ export function backProp(
   return { weightDeltas: weightDeltas, biasDeltas: biasDeltas };
 }
 
-export function train(batch: TrainingExample[], net: Network) {
-  let weightDeltas: number[][][] = [] as number[][][],
-    biasDeltas: number[][] = [] as number[][];
-  for (const ex of batch) {
-    const dict = backProp(
-      ex.inputs,
-      ex.expectedOutputs,
-      net,
-      weightDeltas,
-      biasDeltas
+export function train(batch: TrainingExample[], net: Network): Promise<void> {
+  return new Promise((resolve) => {
+    let weightDeltas: number[][][] = [] as number[][][],
+      biasDeltas: number[][] = [] as number[][];
+    longForLoop(
+      batch.length,
+      50,
+      {
+        weightDeltas: weightDeltas,
+        biasDeltas: biasDeltas,
+        batch: batch,
+        net: net,
+      },
+      (index) => {
+        const ex = batch[index];
+        const dict = backProp(
+          ex.inputs,
+          ex.expectedOutputs,
+          net,
+          weightDeltas,
+          biasDeltas
+        );
+        weightDeltas = dict["weightDeltas"];
+        biasDeltas = dict["biasDeltas"];
+      },
+      () => {
+        net.updateNeurons(weightDeltas, biasDeltas, 1 / batch.length);
+        resolve();
+      }
     );
-    weightDeltas = dict["weightDeltas"];
-    biasDeltas = dict["biasDeltas"];
-  }
-  net.updateNeurons(weightDeltas, biasDeltas, 1 / batch.length);
+  });
 }
 
 export interface TrainingExample {

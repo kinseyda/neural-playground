@@ -1,6 +1,7 @@
 import EmnistImage from "@/data/emnist-image";
 import { feed, Network, train, TrainingExample } from "./network";
 import { formatTimeString } from "@/format";
+import { longForLoop } from "@/long-loop";
 
 function oneHotOutput(outputClass: number): number[] {
   const out = [];
@@ -32,36 +33,51 @@ export class EmnistNet extends Network {
     });
   }
 
-  runNBatches(n: number, batchSize: number) {
+  async runNBatches(n: number, batchSize: number) {
     for (let i = 0; i < n; i++) {
       console.log(`Batch number: ${i}/${n}`);
       const timeIn = Date.now();
-      this.runMiniBatch(batchSize);
+      await this.runMiniBatch(batchSize);
       const timeLastBatch = Date.now() - timeIn;
       const msRemaining = (n - (i + 1)) * timeLastBatch;
       console.log(`Batch ${i} took ${formatTimeString(timeLastBatch)}`);
       console.log(`Remaining: ${formatTimeString(msRemaining)}`);
     }
   }
-  runMiniBatch(n: number) {
-    train(this.generateMiniBatch(n), this);
+  async runMiniBatch(n: number): Promise<void> {
+    return train(this.generateMiniBatch(n), this);
   }
-  getPredictedAccuracy() {
-    console.log("Predicting");
-    const batch = this.generateMiniBatch(10000, true);
+  async getPredictedAccuracy(size: number): Promise<number> {
+    const batch = this.generateMiniBatch(size, true);
     let corrects = 0;
-    for (let i = 0; i < batch.length; i++) {
-      const activs = feed(batch[i].inputs, this)["activations"];
-      if (
-        batch[i].expectedOutputs[getHottest(activs[activs.length - 1])] == 1
-      ) {
-        corrects += 1;
-        console.log(
-          `Correct! ${i}, label=${batch[i].expectedOutputs.indexOf(1)}`
-        );
+    const funcParams = {
+      net: this,
+    };
+
+    return longForLoop(
+      size,
+      50,
+      funcParams,
+      (index, params) => {
+        const net = params["net"] as EmnistNet;
+
+        const activs = feed(batch[index].inputs, net)["activations"];
+        if (
+          batch[index].expectedOutputs[getHottest(activs[activs.length - 1])] ==
+          1
+        ) {
+          corrects += 1;
+          console.log(
+            `Correct! ${index}, label=${batch[index].expectedOutputs.indexOf(
+              1
+            )}`
+          );
+        }
+      },
+      (params) => {
+        params["returnValue"] = corrects / batch.length;
       }
-    }
-    return corrects / batch.length;
+    ) as Promise<number>;
   }
   generateMiniBatch(size: number, test?: boolean): TrainingExample[] {
     const result: TrainingExample[] = [];

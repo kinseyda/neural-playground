@@ -1,3 +1,4 @@
+feedfeedNet
 <template>
   <div id="outer">
     <div id="number-canvas">
@@ -7,14 +8,13 @@
       ></number-canvas>
       <button @click="net.loadEmnist()">Load dataset</button>
       <button @click="net.runMiniBatch(1)">Train</button>
-      <button @click="curAccuracy = net.getPredictedAccuracy()">
-        Predict Accuracy
-      </button>
+      <button @click="predictAccuracy">Predict Accuracy</button>
       <button @click="reFeed">ReFeed</button>
       <button @click="runLots">Run lots of trainings</button>
       <button @click="putExample">Random Example Image</button>
       <p v-if="net.emnist">
-        Accuracy out of 10,000 examples: {{ curAccuracy }}
+        Accuracy out of 10,000 examples:
+        {{ (curAccuracy * 100).toFixed(2) }}%
       </p>
       <p>
         Hottest:
@@ -23,7 +23,7 @@
     </div>
     <div id="outputs">
       <ol start="0">
-        <li v-for="(out, index) in mostRecentResult" :key="out.index">
+        <li v-for="(out, index) in mostRecentResult" :key="index">
           {{ emnistLabels[index] }}/<b>{{
             String.fromCharCode(emnistLabels[index])
           }}</b
@@ -63,14 +63,9 @@ export default defineComponent({
       this.timeOfChange = Date.now();
     },
     reFeed() {
-      if (
-        Date.now() - this.timeOfChange >= 250 &&
-        this.timeOfChange != this.mostRecentUpdate
-      ) {
-        const activs = feed(this.canvasData, this.net)["activations"];
-        this.mostRecentResult = activs[activs.length - 1];
-        this.mostRecentUpdate = this.timeOfChange;
-      }
+      const activs = feed(this.canvasData, this.net)["activations"];
+      this.mostRecentResult = activs[activs.length - 1];
+      this.mostRecentUpdate = this.timeOfChange;
     },
     runLots() {
       this.net.runNBatches(600, 100);
@@ -83,9 +78,14 @@ export default defineComponent({
     getHottest(arr: number[]) {
       return getHottest(arr);
     },
+    predictAccuracy() {
+      this.net.getPredictedAccuracy(10000).then((value) => {
+        this.curAccuracy = value;
+      });
+    },
   },
   mounted() {
-    setInterval(this.reFeed, 100);
+    setInterval(this.reFeed, 250);
   },
 });
 </script>
