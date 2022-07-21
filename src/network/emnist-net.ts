@@ -15,22 +15,54 @@ export function getHottest(arr: number[]) {
   return arr.indexOf(Math.max(...arr));
 }
 
-export class EmnistNet extends Network {
-  emnist: EmnistImage[] | undefined;
-  testEmnist: EmnistImage[] | undefined;
+export let emnistData: EmnistImage[] | undefined = undefined,
+  testEmnistData: EmnistImage[] | undefined = undefined;
 
+export function loadEmnist() {
+  import("@/data/digits_train_data.json").then(({ default: module }) => {
+    emnistData = module as EmnistImage[];
+  });
+  import("@/data/digits_test_data.json").then(({ default: module }) => {
+    testEmnistData = module as EmnistImage[];
+  });
+}
+
+/**
+ *
+ * @param size
+ * @param test - Whether the batch should be pulled from the test data set (opposed to the training set)
+ * @returns
+ */
+export function generateMiniBatch(
+  size: number,
+  test?: boolean
+): TrainingExample[] {
+  const result: TrainingExample[] = [];
+  const indexes: number[] = [];
+  let superSet = emnistData;
+  if (test) {
+    superSet = testEmnistData;
+  }
+  while (result.length < size) {
+    if (!superSet) {
+      throw new Error("Data set not loaded");
+    }
+    const x = Math.floor(Math.random() * superSet.length);
+    if (!(x in indexes)) {
+      indexes.push(x);
+      result.push({
+        inputs: superSet[x].data,
+        expectedOutputs: oneHotOutput(superSet[x].label),
+      });
+    }
+  }
+  return result;
+}
+
+export class EmnistNet extends Network {
   constructor() {
     super([784, 16, 16, 10], 1);
-    this.emnist = undefined;
-  }
-
-  loadEmnist() {
-    import("@/data/digits_train_data.json").then(({ default: module }) => {
-      this.emnist = module as EmnistImage[];
-    });
-    import("@/data/digits_test_data.json").then(({ default: module }) => {
-      this.testEmnist = module as EmnistImage[];
-    });
+    // Two hidden layers of 16 neurons by default, no real justification behind that other than that it's what 3Blue1Brown uses in his series on neural networks that tackles this same problem.
   }
 
   async runNBatches(n: number, batchSize: number) {
@@ -45,10 +77,10 @@ export class EmnistNet extends Network {
     }
   }
   async runMiniBatch(n: number): Promise<void> {
-    return train(this.generateMiniBatch(n), this);
+    return train(generateMiniBatch(n), this);
   }
   async getPredictedAccuracy(size: number): Promise<number> {
-    const batch = this.generateMiniBatch(size, true);
+    const batch = generateMiniBatch(size, true);
     let corrects = 0;
     const funcParams = {
       net: this,
@@ -78,27 +110,5 @@ export class EmnistNet extends Network {
         params["returnValue"] = corrects / batch.length;
       }
     ) as Promise<number>;
-  }
-  generateMiniBatch(size: number, test?: boolean): TrainingExample[] {
-    const result: TrainingExample[] = [];
-    const indexes: number[] = [];
-    let superSet = this.emnist;
-    if (test) {
-      superSet = this.testEmnist;
-    }
-    while (result.length < size) {
-      if (!superSet) {
-        throw new Error("Data set not loaded");
-      }
-      const x = Math.floor(Math.random() * superSet.length);
-      if (!(x in indexes)) {
-        indexes.push(x);
-        result.push({
-          inputs: superSet[x].data,
-          expectedOutputs: oneHotOutput(superSet[x].label),
-        });
-      }
-    }
-    return result;
   }
 }
