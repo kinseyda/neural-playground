@@ -1,5 +1,3 @@
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { formatTimeString } from "@/format";
 import { longForLoop } from "@/long-loop";
 
 function sigmoid(n: number) {
@@ -25,6 +23,9 @@ function squishDerivative(n: number): number {
   return sigmoidDerivative(n);
 }
 
+/**
+ * Unraveling in this way is a little faster than a regular for-loop.
+ */
 function dotProduct(a: number[], b: number[]): number {
   let sum = 0;
   let i = a.length;
@@ -45,30 +46,13 @@ function dotProduct(a: number[], b: number[]): number {
   return sum;
 }
 
-function unraveledHiddenLayerLoop(
-  weights: number[][],
-  errors: number[],
-  curNeuron: number
-) {
-  let sum = 0;
-  let i = errors.length;
-  for (; i > 7; i -= 8) {
-    sum +=
-      weights[i - 1][curNeuron] * errors[i - 1] +
-      weights[i - 2][curNeuron] * errors[i - 2] +
-      weights[i - 3][curNeuron] * errors[i - 3] +
-      weights[i - 4][curNeuron] * errors[i - 4] +
-      weights[i - 5][curNeuron] * errors[i - 5] +
-      weights[i - 6][curNeuron] * errors[i - 6] +
-      weights[i - 7][curNeuron] * errors[i - 7] +
-      weights[i - 8][curNeuron] * errors[i - 8];
-  }
-  while (i--) {
-    sum += weights[i][curNeuron] * errors[i];
-  }
-  return sum;
-}
-
+/**
+ * Find the neuron activations of a network for a given set of inputs.
+ * Also returns the calculated values for "z", which is the value of each activation before it is run through the sigmoid / reLu function (before "squishing", in the words of 3Blue1Brown). This value can be used in back propagation, or ignored.
+ * @param inputs
+ * @param net
+ * @returns - An object containing the activations and z values, indexed by "activations" and "zs" respectively
+ */
 export function feed(
   inputs: number[],
   net: Network
@@ -96,9 +80,14 @@ export function feed(
 }
 
 /**
- * http://neuralnetworksanddeeplearning.com/chap2.html good reading
+ * Determines how a network should change each of its weights and biases in order to more closely match the given inputs and expected outputs.
+ * See http://neuralnetworksanddeeplearning.com/chap2.html for a great walk-through the algorithm.
  * @param inputs
  * @param expectedOutputs
+ * @param net
+ * @param weightDeltas - The current matrix of deltas to change the weights by. If provided, this is mutated with the new deltas. The end result (after running backProp several times as in {@link train}) is a matrix of sums of deltas, which can then be divided by batch size. Alternatively this can be done for a single case and the deltas will be as expected.
+ * @param biasDeltas - Similar to weightDeltas
+ * @returns - An object containing the weight and bias deltas, indexed by "weightDeltas" and "biasDeltas" respectively
  */
 export function backProp(
   inputs: number[],
@@ -108,8 +97,9 @@ export function backProp(
   biasDeltas?: number[][]
 ): { weightDeltas: number[][][]; biasDeltas: number[][] } {
   const weights = net.weights,
-    biases = net.biases,
-    sizes = net.sizes;
+    sizes = net.sizes; // We don't actually need to know the biases to compute their derivative, interestingly
+
+  // Initialize the deltas all to zero
   if (
     weightDeltas === undefined ||
     biasDeltas === undefined ||
@@ -138,6 +128,36 @@ export function backProp(
   const activations = dict["activations"],
     zs = dict["zs"];
   const errors: number[][] = [];
+
+  /**
+   * A small loop that would normally happen when calculating hidden layer errors
+   * Unraveled similarly to {@link dotProduct}
+   */
+  const unraveledHiddenLayerLoop = function (
+    weights: number[][],
+    errors: number[],
+    curNeuron: number
+  ) {
+    let sum = 0;
+    let i = errors.length;
+    for (; i > 7; i -= 8) {
+      sum +=
+        weights[i - 1][curNeuron] * errors[i - 1] +
+        weights[i - 2][curNeuron] * errors[i - 2] +
+        weights[i - 3][curNeuron] * errors[i - 3] +
+        weights[i - 4][curNeuron] * errors[i - 4] +
+        weights[i - 5][curNeuron] * errors[i - 5] +
+        weights[i - 6][curNeuron] * errors[i - 6] +
+        weights[i - 7][curNeuron] * errors[i - 7] +
+        weights[i - 8][curNeuron] * errors[i - 8];
+    }
+    while (i--) {
+      sum += weights[i][curNeuron] * errors[i];
+    }
+    return sum;
+  };
+
+  // Calculate errors and then deltas for each layer
   for (let curLayer = sizes.length - 1; curLayer > 0; curLayer--) {
     errors[curLayer] = [];
     if (curLayer == sizes.length - 1) {
@@ -150,6 +170,7 @@ export function backProp(
       }
     } else {
       // Hidden layer errors
+      // aka _prop_agate the output layer errors _back_wards
       for (let curNeuron = 0; curNeuron < sizes[curLayer]; curNeuron++) {
         const foreErr = unraveledHiddenLayerLoop(
           weights[curLayer + 1],
@@ -160,6 +181,8 @@ export function backProp(
           foreErr * squishDerivative(zs[curLayer][curNeuron]);
       }
     }
+
+    // Calculate deltas for this layer based on errors
     for (let curNeuron = 0; curNeuron < sizes[curLayer]; curNeuron++) {
       biasDeltas[curLayer][curNeuron] -= errors[curLayer][curNeuron];
       for (
@@ -176,6 +199,12 @@ export function backProp(
   return { weightDeltas: weightDeltas, biasDeltas: biasDeltas };
 }
 
+/**
+ * Runs the {@link backProp} algorithm on a network for every example in the batch, then modifies the net's weights / biases with the average deltas obtained from the backProps
+ * @param batch
+ * @param net
+ * @returns
+ */
 export function train(batch: TrainingExample[], net: Network): Promise<void> {
   return new Promise((resolve) => {
     let weightDeltas: number[][][] = [] as number[][][],
@@ -219,9 +248,11 @@ export class Network {
   biases: number[][]; // [layer][index]
   sizes: number[];
   learningRate: number;
+
   /**
-   *
-   * @param sizes - List of sizes of layers: input, hidden layer[s], output
+   * Randomly sets weights and biases of a network with the given layer sizes.
+   * @param sizes  - List of sizes of layers: input, hidden layer[s], output, ie len >=2
+   * @param learningRate - A number to multiply with all changes to neuron weights/biases
    */
   constructor(sizes: number[], learningRate: number) {
     this.sizes = sizes;
@@ -272,14 +303,18 @@ export class Network {
   }
 
   /**
-   * Use this version only when speed isnt super important, eg when running the function just once and outside of a loop
+   * This function is simply provided for convenience, "this." references are bizarrely slow.
+   * Use this version only when speed isnt super important, eg when running the function just once and outside of a loop.
+   * Otherwise use {@link feed}
    */
   feed(inputs: number[]): { activations: number[][]; zs: number[][] } {
     return feed(inputs, this);
   }
 
   /**
-   * Use this version only when speed isnt super important, eg when running the function just once and outside of a loop
+   * This function is simply provided for convenience, "this." references are bizarrely slow.
+   * Use this version only when speed isnt super important, eg when running the function just once and outside of a loop.
+   * Otherwise use {@link backProp}
    */
   backProp(
     inputs: number[],

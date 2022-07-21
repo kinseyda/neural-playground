@@ -29,8 +29,8 @@
     "typescript": "~4.5.5"
   },
   "fork-ts-checker": {
-	"typescript": {
-		"memoryLimit": 16384
-	}
+    "typescript": {
+      "memoryLimit": 16384
+    }
   }
 }

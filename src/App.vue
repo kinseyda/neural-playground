@@ -6,13 +6,13 @@ feedfeedNet
         ref="numCan"
         v-on:imageChange="imageChange"
       ></number-canvas>
-      <button @click="net.loadEmnist()">Load dataset</button>
+      <button @click="loadEmnistData()">Load dataset</button>
       <button @click="net.runMiniBatch(1)">Train</button>
       <button @click="predictAccuracy">Predict Accuracy</button>
       <button @click="reFeed">ReFeed</button>
       <button @click="runLots">Run lots of trainings</button>
       <button @click="putExample">Random Example Image</button>
-      <p v-if="net.emnist">
+      <p v-if="getEmnistData()">
         Accuracy out of 10,000 examples:
         {{ (curAccuracy * 100).toFixed(2) }}%
       </p>
@@ -38,7 +38,13 @@ feedfeedNet
 import { defineComponent } from "vue";
 import NumberCanvas from "./components/NumberCanvas.vue";
 import { feed } from "./network/network";
-import { EmnistNet, getHottest } from "./network/emnist-net";
+import {
+  EmnistNet,
+  generateMiniBatch,
+  getHottest,
+  emnistData,
+  loadEmnist,
+} from "./network/emnist-net";
 import { emnistLabels } from "./data/emnist-labels";
 
 export default defineComponent({
@@ -71,7 +77,7 @@ export default defineComponent({
       this.net.runNBatches(600, 100);
     },
     putExample() {
-      const ex = this.net.generateMiniBatch(1, true)[0];
+      const ex = generateMiniBatch(1, true)[0];
       console.log(ex.expectedOutputs.indexOf(1));
       (this.$refs["numCan"] as typeof NumberCanvas).replaceImage(ex.inputs);
     },
@@ -82,6 +88,12 @@ export default defineComponent({
       this.net.getPredictedAccuracy(10000).then((value) => {
         this.curAccuracy = value;
       });
+    },
+    getEmnistData() {
+      return emnistData;
+    },
+    loadEmnistData() {
+      loadEmnist();
     },
   },
   mounted() {
