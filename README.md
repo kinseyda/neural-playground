@@ -4,6 +4,8 @@
 
 Neural Playground is currently in a very early stage of development, this is only a proof of concept for the network-related functionality. Interactivity is currently very limited, console logging is still used for things like time estimates, and the app is very ugly looking.
 
+<img src="./readmeExampleImage.png" width="600px">
+
 ## Project setup
 ```
 npm install
