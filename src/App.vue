@@ -1,16 +1,16 @@
 feedfeedNet
 <template>
-  <emnist-display></emnist-display>
+  <gate-display></gate-display>
 </template>
 
 <script lang="ts">
 import { defineComponent } from "vue";
-import EmnistDisplay from "./components/EmnistDisplay.vue";
+import GateDisplay from "./components/LogicGate/GateDisplay.vue";
 
 export default defineComponent({
   name: "App",
   components: {
-    EmnistDisplay,
+    GateDisplay,
   },
   data() {
     return {};

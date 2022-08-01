@@ -1,19 +1,8 @@
 import EmnistImage from "@/data/emnist-image";
-import { feed, Network, train, TrainingExample } from "./network";
+import { feed, Network, train, TrainingExample } from "../network";
 import { formatTimeString } from "@/format";
 import { longForLoop } from "@/long-loop";
-
-function oneHotOutput(outputClass: number): number[] {
-  const out = [];
-  for (let i = 0; i < 47; i++) {
-    out.push(i == outputClass ? 1 : 0);
-  }
-  return out;
-}
-
-export function getHottest(arr: number[]) {
-  return arr.indexOf(Math.max(...arr));
-}
+import { getHottest, oneHotOutput } from "../helpers";
 
 export let emnistData: EmnistImage[] | undefined = undefined,
   testEmnistData: EmnistImage[] | undefined = undefined;
@@ -33,7 +22,7 @@ export function loadEmnist() {
  * @param test - Whether the batch should be pulled from the test data set (opposed to the training set)
  * @returns
  */
-export function generateMiniBatch(
+export function generateEmnistBatch(
   size: number,
   test?: boolean
 ): TrainingExample[] {
@@ -52,7 +41,7 @@ export function generateMiniBatch(
       indexes.push(x);
       result.push({
         inputs: superSet[x].data,
-        expectedOutputs: oneHotOutput(superSet[x].label),
+        expectedOutputs: oneHotOutput(superSet[x].label, 48),
       });
     }
   }
@@ -77,10 +66,10 @@ export class EmnistNet extends Network {
     }
   }
   async runMiniBatch(n: number): Promise<void> {
-    return train(generateMiniBatch(n), this);
+    return train(generateEmnistBatch(n), this);
   }
   async getPredictedAccuracy(size: number): Promise<number> {
-    const batch = generateMiniBatch(size, true);
+    const batch = generateEmnistBatch(size, true);
     let corrects = 0;
     const funcParams = {
       net: this,

@@ -1,4 +1,4 @@
-feedfeedNet
+generateEmnistBatchfeedfeedNet
 <template>
   <div id="outer">
     <div id="number-canvas">
@@ -37,15 +37,15 @@ feedfeedNet
 <script lang="ts">
 import { defineComponent } from "vue";
 import NumberCanvas from "./NumberCanvas.vue";
-import { feed } from "../network/network";
+import { feed } from "@/network/network";
 import {
   EmnistNet,
-  generateMiniBatch,
-  getHottest,
+  generateEmnistBatch,
   emnistData,
   loadEmnist,
-} from "../network/emnist-net";
-import { emnistLabels } from "../data/emnist-labels";
+} from "@/network/nets/emnist-net";
+import { emnistLabels } from "@/data/emnist-labels";
+import { getHottest } from "@/network/helpers";
 
 export default defineComponent({
   name: "EmnistDisplay",
@@ -77,7 +77,7 @@ export default defineComponent({
       this.net.runNBatches(600, 100);
     },
     putExample() {
-      const ex = generateMiniBatch(1, true)[0];
+      const ex = generateEmnistBatch(1, true)[0];
       console.log(ex.expectedOutputs.indexOf(1));
       (this.$refs["numCan"] as typeof NumberCanvas).replaceImage(ex.inputs);
     },
