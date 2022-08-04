@@ -102,7 +102,7 @@ export default defineComponent({
 });
 </script>
 
-<style>
+<style scoped>
 #number-canvas {
   flex: 1 0 50%;
   position: absolute;

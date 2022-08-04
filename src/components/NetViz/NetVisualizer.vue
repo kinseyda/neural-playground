@@ -1,0 +1,225 @@
+<template>
+  <button @click="updateNet">Update</button>
+  <button @click="fitNet">Fit</button>
+  <div id="net-container"></div>
+</template>
+
+<script lang="ts">
+import { defineComponent } from "vue";
+import { Network as Net } from "@/network/network";
+import { getColorScale } from "../color";
+import { sigmoid } from "@/network/math-functions";
+import { Network } from "vis-network/peer";
+import { DataSet } from "vis-data";
+import "vis-network/styles/vis-network.css";
+
+interface NeuronData {
+  id: number;
+  color: {
+    background: string;
+    hover: { background: string };
+    highlight: { background: string };
+  };
+  title: string;
+  opacity: number;
+  x: number;
+  y: number;
+}
+interface ConnectionData {
+  id: number;
+  from: number;
+  to: number;
+  hidden: boolean;
+  color: string;
+  title: string;
+}
+
+function getNodeId(sizes: number[], layer: number, row: number): number {
+  let passedNodes = 0;
+  for (let i = 0; i < layer; i++) {
+    passedNodes += sizes[i];
+  }
+  return passedNodes + row;
+}
+function getConId(
+  sizes: number[],
+  layer: number,
+  row: number,
+  weight: number
+): number {
+  let passedWeights = 0;
+  for (let i = 1; i < layer; i++) {
+    passedWeights += sizes[i] * sizes[i - 1];
+  }
+  return passedWeights + row * sizes[layer - 1] + weight;
+}
+
+function makeNetData(net: Net): {
+  nodes: DataSet<NeuronData>;
+  edges: DataSet<ConnectionData>;
+} {
+  const nodes = new DataSet<NeuronData>();
+  const edges = new DataSet<ConnectionData>();
+  for (let i = 0; i < net.sizes.length; i++) {
+    const curSize = net.sizes[i];
+    for (let j = 0; j < curSize; j++) {
+      const nodeColor =
+        i == 0
+          ? "#FFFFFF"
+          : getColorScale("green red", sigmoid(-1 * net.biases[i][j]));
+      nodes.add({
+        id: getNodeId(net.sizes, i, j),
+        // label: getNodeId(net.sizes, i, j).toString(),
+        color: {
+          background: nodeColor,
+          hover: { background: nodeColor },
+          highlight: { background: nodeColor },
+        },
+        opacity: 1,
+        x: i * 200,
+        y: j * 200,
+        title: `Node ${getNodeId(net.sizes, i, j)}\nBias: ${net.biases[i][j]}`,
+      });
+
+      if (i > 0) {
+        for (let k = 0; k < net.sizes[i - 1]; k++) {
+          edges.add({
+            id: getConId(net.sizes, i, j, k),
+            from: getNodeId(net.sizes, i, j),
+            to: getNodeId(net.sizes, i - 1, k),
+            color: getColorScale(
+              "green red",
+              sigmoid(-1 * net.weights[i][j][k])
+            ),
+            title: `Connection ${getConId(net.sizes, i, j, k)}\nWeight: ${
+              net.weights[i][j][k]
+            }`,
+            hidden: false,
+          });
+        }
+      }
+    }
+  }
+
+  return { nodes: nodes, edges: edges };
+}
+
+let visNet = null as Network | null;
+let container = null as HTMLElement | null;
+let netData = null as {
+  nodes: DataSet<NeuronData>;
+  edges: DataSet<ConnectionData>;
+} | null;
+
+export default defineComponent({
+  name: "NetVisualizer",
+  props: ["net"],
+  components: {},
+  data() {
+    return {};
+  },
+  methods: {
+    updateNet() {
+      if (!container || !visNet) {
+        return;
+      }
+      netData = makeNetData(this.net);
+      visNet.setData(netData);
+    },
+    fitNet() {
+      if (!visNet) {
+        return;
+      }
+      visNet.fit();
+    },
+  },
+  mounted() {
+    container = document.getElementById("net-container");
+    if (!container) {
+      return;
+    }
+    var options = {
+      interaction: {
+        dragNodes: false,
+        hover: true,
+        selectable: true,
+        tooltipDelay: 0,
+      },
+      nodes: {
+        shape: "circle",
+        color: {
+          border: "black",
+          hover: { border: "black" },
+          highlight: { border: "black" },
+        },
+      },
+      edges: {
+        width: 3,
+        hoverWidth: 5,
+        selectionWidth: 5,
+      },
+      physics: {
+        enabled: false,
+      },
+    };
+    visNet = new Network(container, {}, options);
+    visNet.on(
+      "selectNode",
+      function (params: {
+        nodes: number[];
+        edges: number[];
+        event: MouseEvent;
+        pointer: {
+          DOM: { x: number; y: number };
+          canvas: { x: number; y: number };
+        };
+      }) {
+        if (!visNet || !netData) {
+          return;
+        }
+        const conNodes = visNet.getConnectedNodes(params.nodes[0]) as number[];
+        conNodes.push(params.nodes[0]); // Should be only one selected
+        const conEdges = visNet.getConnectedEdges(params.nodes[0]);
+        const dimmedNodes = netData.nodes.getIds({
+          filter: (node: NeuronData) => {
+            return !conNodes.includes(node.id);
+          },
+        });
+        const hiddenEdges = netData.edges.getIds({
+          filter: (edge: ConnectionData) => {
+            return !conEdges.includes(edge.id);
+          },
+        });
+
+        for (const id of dimmedNodes as number[]) {
+          netData.nodes.updateOnly({ id: id, opacity: 0.5 });
+        }
+        for (const id of hiddenEdges as number[]) {
+          netData.edges.updateOnly({ id: id, hidden: true });
+        }
+      }
+    );
+    visNet.on("deselectNode", function () {
+      if (!netData) {
+        return;
+      }
+      for (const id of netData.nodes.getIds() as number[]) {
+        netData.nodes.updateOnly({ id: id, opacity: 1 });
+      }
+      for (const id of netData.edges.getIds() as number[]) {
+        netData.edges.updateOnly({ id: id, hidden: false });
+      }
+    });
+    this.updateNet();
+    console.log(netData!.edges.getIds());
+  },
+});
+</script>
+
+<style scoped>
+#net-container {
+  width: 100%;
+  height: 100%;
+  border: 1px solid black;
+}
+</style>

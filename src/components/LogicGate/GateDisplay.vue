@@ -14,6 +14,9 @@ feedfeedNet
         </li>
       </ol>
     </div>
+    <div id="net-viz">
+      <net-visualizer :net="net" ref="netViz"></net-visualizer>
+    </div>
     <div id="data">
       <gate-i-o-selector
         v-model="trainData"
@@ -31,11 +34,12 @@ import { getHottest, numToBinList } from "@/network/helpers";
 import { LogicGateNet } from "@/network/nets/logic-gate-net";
 import { feed, TrainingExample } from "@/network/network";
 import GateIOSelector from "./GateIOSelector.vue";
+import NetVisualizer from "../NetViz/NetVisualizer.vue";
 import { train } from "@/network/network";
 
 export default defineComponent({
   name: "GateDisplay",
-  components: { GateIOSelector },
+  components: { GateIOSelector, NetVisualizer },
   data() {
     return {
       net: new LogicGateNet(),
@@ -74,6 +78,7 @@ export default defineComponent({
       for (let i = 0; i < epochs; i++) {
         train(this.trainData, this.net);
       }
+      (this.$refs["netViz"] as typeof NetVisualizer).updateNet();
     },
   },
   mounted() {
@@ -85,13 +90,18 @@ export default defineComponent({
 });
 </script>
 
-<style>
+<style scoped>
 #outer {
   display: flex;
   flex-direction: row;
 }
 #outputs {
-  flex: 1 0 50%;
+  flex: 1 0 10%;
   font-size: x-small;
+}
+#net-viz {
+  flex: 1 0 50%;
+  width: 50ch;
+  height: 50ch;
 }
 </style>
