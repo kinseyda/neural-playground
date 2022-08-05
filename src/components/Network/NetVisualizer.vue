@@ -11,6 +11,7 @@ import { getColorScale } from "../color";
 import { sigmoid } from "@/network/math-functions";
 import { Network } from "vis-network/peer";
 import { DataSet } from "vis-data";
+import { longForLoop } from "@/long-loop";
 import "vis-network/styles/vis-network.css";
 
 interface NeuronData {
@@ -60,6 +61,7 @@ function makeNetData(net: Net): {
 } {
   const nodes = new DataSet<NeuronData>();
   const edges = new DataSet<ConnectionData>();
+  const maxSize = Math.max(...net.sizes);
   for (let i = 0; i < net.sizes.length; i++) {
     const curSize = net.sizes[i];
     for (let j = 0; j < curSize; j++) {
@@ -67,6 +69,7 @@ function makeNetData(net: Net): {
         i == 0
           ? "#FFFFFF"
           : getColorScale("green red", sigmoid(-1 * net.biases[i][j]));
+      const yOffset = curSize == maxSize ? 0 : (maxSize - curSize) / 2; // Makes sure that layers are vertically centered
       nodes.add({
         id: getNodeId(net.sizes, i, j),
         // label: getNodeId(net.sizes, i, j).toString(),
@@ -77,7 +80,7 @@ function makeNetData(net: Net): {
         },
         opacity: 1,
         x: i * 200,
-        y: j * 200,
+        y: (j + yOffset) * 150,
         title: `Node ${getNodeId(net.sizes, i, j)}\nBias: ${net.biases[i][j]}`,
       });
 
@@ -184,34 +187,49 @@ export default defineComponent({
           filter: (node: NeuronData) => {
             return !conNodes.includes(node.id);
           },
-        });
+        }) as number[];
         const hiddenEdges = netData.edges.getIds({
           filter: (edge: ConnectionData) => {
             return !conEdges.includes(edge.id);
           },
-        });
+        }) as number[];
 
-        for (const id of dimmedNodes as number[]) {
-          netData.nodes.updateOnly({ id: id, opacity: 0.5 });
-        }
-        for (const id of hiddenEdges as number[]) {
-          netData.edges.updateOnly({ id: id, hidden: true });
-        }
+        longForLoop(dimmedNodes.length, 50, {}, (index: number) => {
+          if (!netData) {
+            return;
+          }
+          netData.nodes.updateOnly({ id: dimmedNodes[index], opacity: 0.5 });
+        }).then(() => {
+          longForLoop(hiddenEdges.length, 50, {}, (index: number) => {
+            if (!netData) {
+              return;
+            }
+            netData.edges.updateOnly({ id: hiddenEdges[index], hidden: true });
+          });
+        });
       }
     );
     visNet.on("deselectNode", function () {
       if (!netData) {
         return;
       }
-      for (const id of netData.nodes.getIds() as number[]) {
-        netData.nodes.updateOnly({ id: id, opacity: 1 });
-      }
-      for (const id of netData.edges.getIds() as number[]) {
-        netData.edges.updateOnly({ id: id, hidden: false });
-      }
+      const nodeIds = netData.nodes.getIds() as number[];
+      const edgeIds = netData.edges.getIds() as number[];
+      longForLoop(nodeIds.length, 50, {}, (index: number) => {
+        if (!netData) {
+          return;
+        }
+        netData.nodes.updateOnly({ id: nodeIds[index], opacity: 1 });
+      }).then(() => {
+        longForLoop(edgeIds.length, 50, {}, (index: number) => {
+          if (!netData) {
+            return;
+          }
+          netData.edges.updateOnly({ id: edgeIds[index], hidden: false });
+        });
+      });
     });
     this.updateNet();
-    console.log(netData!.edges.getIds());
   },
 });
 </script>
