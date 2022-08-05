@@ -14,8 +14,11 @@ feedfeedNet
         </li>
       </ol>
     </div>
+    <div>
+      <size-selector v-model="netSizes"></size-selector>
+    </div>
     <div id="net-viz">
-      <net-visualizer :net="net" ref="netViz"></net-visualizer>
+      <net-visualizer ref="netViz"></net-visualizer>
     </div>
     <div id="data">
       <gate-i-o-selector
@@ -34,20 +37,30 @@ import { getHottest, numToBinList } from "@/network/helpers";
 import { LogicGateNet } from "@/network/nets/logic-gate-net";
 import { feed, TrainingExample } from "@/network/network";
 import GateIOSelector from "./GateIOSelector.vue";
-import NetVisualizer from "../NetViz/NetVisualizer.vue";
+import NetVisualizer from "@/components/Network/NetVisualizer.vue";
+import SizeSelector from "@/components/Network/SizeSelector.vue";
 import { train } from "@/network/network";
 
 export default defineComponent({
   name: "GateDisplay",
-  components: { GateIOSelector, NetVisualizer },
+  components: { GateIOSelector, NetVisualizer, SizeSelector },
   data() {
     return {
+      netSizes: [2, 2, 1],
       net: new LogicGateNet(),
       inputs: [] as number[],
       mostRecentResult: [] as number[],
       trainData: [] as TrainingExample[],
       curAccuracy: 0,
     };
+  },
+  watch: {
+    netSizes: {
+      deep: true,
+      handler() {
+        this.newNet();
+      },
+    },
   },
   methods: {
     toggleInput(inputNum: number) {
@@ -61,29 +74,23 @@ export default defineComponent({
     getHottest(arr: number[]) {
       return getHottest(arr);
     },
-    setTrainData() {
-      const arr: TrainingExample[] = [];
-      for (let i = 0; i < 2 ** this.net.sizes[0]; i++) {
-        arr[i] = {
-          inputs: numToBinList(i, this.net.sizes[0]),
-          expectedOutputs: numToBinList(0, this.net.sizes[0]),
-        };
-      }
-      this.trainData.length = 0;
-      for (const ex of arr) {
-        this.trainData.push(ex);
-      }
-    },
     trainWithData(epochs: number) {
       for (let i = 0; i < epochs; i++) {
         train(this.trainData, this.net);
       }
-      (this.$refs["netViz"] as typeof NetVisualizer).updateNet();
+      this.updateVisualizer();
+    },
+    newNet() {
+      this.net = new LogicGateNet(this.netSizes);
+      this.inputs = new Array(this.net.sizes[0]).fill(0);
+      this.updateVisualizer();
+    },
+    updateVisualizer() {
+      (this.$refs["netViz"] as typeof NetVisualizer).updateNet(this.net);
     },
   },
   mounted() {
-    this.inputs = new Array(this.net.sizes[0]).fill(0);
-    this.setTrainData();
+    this.newNet();
     this.reFeed();
     setInterval(this.reFeed, 250);
   },

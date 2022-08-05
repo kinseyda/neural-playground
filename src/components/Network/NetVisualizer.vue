@@ -1,5 +1,4 @@
 <template>
-  <button @click="updateNet">Update</button>
   <button @click="fitNet">Fit</button>
   <div id="net-container"></div>
 </template>
@@ -116,17 +115,17 @@ let netData = null as {
 
 export default defineComponent({
   name: "NetVisualizer",
-  props: ["net"],
+  props: [],
   components: {},
   data() {
     return {};
   },
   methods: {
-    updateNet() {
+    updateNet(net: Net) {
       if (!container || !visNet) {
         return;
       }
-      netData = makeNetData(this.net);
+      netData = makeNetData(net);
       visNet.setData(netData);
     },
     fitNet() {
@@ -229,7 +228,6 @@ export default defineComponent({
         });
       });
     });
-    this.updateNet();
   },
 });
 </script>

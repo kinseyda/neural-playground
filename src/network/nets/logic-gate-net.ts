@@ -4,8 +4,8 @@ import { formatTimeString } from "@/format";
 import { longForLoop } from "@/long-loop";
 
 export class LogicGateNet extends Network {
-  constructor() {
-    super([2, 2, 1], 1);
+  constructor(sizes?: number[], learningRate?: number) {
+    super(sizes ? sizes : [2, 2, 1], learningRate ? learningRate : 1);
     // I'm not sure if a hidden layer is actually necessary for logic gates?
   }
 }

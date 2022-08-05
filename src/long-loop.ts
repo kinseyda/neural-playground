@@ -22,6 +22,15 @@ export async function longForLoop(
   loopContent: (index: number, params: typeof funcParams) => void,
   onComplete?: (params: typeof funcParams) => void
 ): Promise<unknown> {
+  if (size < 0) {
+    throw new RangeError(`Long-For-Loop length of ${size} not valid!`);
+  }
+  if (size == 0) {
+    return new Promise((resolve) => {
+      resolve(funcParams["returnValue"]);
+    });
+  }
+
   return new Promise((resolve) => {
     let index = 0;
     let lastBreak = Date.now();
