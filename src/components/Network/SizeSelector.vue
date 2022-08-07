@@ -31,8 +31,10 @@ import { binListToNum, numToBinList } from "@/network/helpers";
 import { TrainingExample } from "@/network/network";
 import { defineComponent } from "vue";
 interface Locked {
-  input?: number;
-  output?: number;
+  inputMax?: number;
+  hiddenMax?: number;
+  outputMax?: number;
+  layersMax?: number;
 }
 export default defineComponent({
   name: "SizeSelector",
@@ -56,7 +58,12 @@ export default defineComponent({
       this.$emit("update:modelValue", this.curList);
     },
     increment(index: number) {
-      this.curList[index] += 1;
+      let maxSize = (this.locked as Locked).hiddenMax || Infinity;
+      if (index == 0) maxSize = (this.locked as Locked).inputMax || Infinity;
+      if (index == this.curList.length - 1)
+        maxSize = (this.locked as Locked).outputMax || Infinity;
+
+      if (this.curList[index] < maxSize) this.curList[index] += 1;
     },
     decrement(index: number) {
       if (this.curList[index] > 1) this.curList[index] -= 1;
@@ -65,7 +72,8 @@ export default defineComponent({
       if (this.curList.length > 2) this.curList.splice(index, 1);
     },
     add() {
-      this.curList.push(1);
+      if (this.curList.length < ((this.locked as Locked).layersMax || Infinity))
+        this.curList.push(1);
     },
   },
 });
