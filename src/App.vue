@@ -32,4 +32,14 @@ export default defineComponent({
   display: flex;
   flex-direction: column;
 }
+button {
+  border-radius: 0;
+  border: 1px solid black;
+}
+h1,
+h2,
+h3 {
+  margin-top: 0;
+  margin-bottom: 0;
+}
 </style>

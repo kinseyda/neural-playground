@@ -32,7 +32,7 @@
         </colgroup>
         <tr>
           <td>
-            <small>Enabled</small>
+            <small>Enable</small>
           </td>
         </tr>
         <tr
@@ -210,14 +210,8 @@ td {
   /* margin to fix offset caused by solid border on output column, just to make those dashed lines line up */
   flex: 1 0 0;
 }
-button {
-  /* width: 100%;
-  height: 95%; */
-  border-radius: 0;
-  border: 1px solid black;
-}
 small {
-  margin-left: 1ch;
-  margin-right: 1ch;
+  margin-left: 0.25ch;
+  margin-right: 0.25ch;
 }
 </style>

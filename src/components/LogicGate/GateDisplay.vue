@@ -4,23 +4,47 @@ feedfeedNet
     <div id="io-setup-col">
       <h2>Network setup</h2>
       <div id="net-setup">
-        <size-selector v-model="netSizes"></size-selector>
+        <size-selector
+          v-model="netSizes"
+          :locked="{ inputMax: 8, hiddenMax: 8, outputMax: 8, layersMax: 8 }"
+        ></size-selector>
         <button @click="newNet()">Reset network</button>
       </div>
       <h2>Input/Output Testing</h2>
       <div id="io-container">
-        <div v-for="inputNum in net.sizes[0]" :key="inputNum">
-          <button @click="toggleInput(inputNum)">
-            {{ inputNum - 1 }}
-          </button>
+        <div id="io-inputs">
+          <p>Inputs:</p>
+          <div id="io-in-top-spacer"></div>
+          <table>
+            <tr
+              v-for="(_, inputNum) in net.sizes[0]"
+              :key="inputNum"
+              class="input-row"
+            >
+              <td class="io-index">{{ inputNum }}</td>
+              <td>
+                <button @click="toggleInput(inputNum)">
+                  {{ inputs[inputNum] }}
+                </button>
+              </td>
+            </tr>
+          </table>
+          <div id="io-in-bottom-spacer"></div>
         </div>
-        {{ inputs }}
-        <div id="outputs">
-          <ol start="0">
-            <li v-for="(out, index) in mostRecentResult" :key="index">
-              <b>{{ out.toFixed(2) }}</b>
-            </li>
-          </ol>
+        <div id="io-outputs">
+          <p>Outputs:</p>
+          <div id="io-out-top-spacer"></div>
+          <table>
+            <tr
+              v-for="(output, outputNum) in mostRecentResult"
+              :key="outputNum"
+              class="output-row"
+            >
+              <td class="io-index">{{ outputNum }}</td>
+              <td>{{ output.toFixed(4) }}</td>
+            </tr>
+          </table>
+          <div id="io-out-bottom-spacer"></div>
         </div>
       </div>
     </div>
@@ -83,7 +107,7 @@ export default defineComponent({
   },
   methods: {
     toggleInput(inputNum: number) {
-      this.inputs[inputNum - 1] = this.inputs[inputNum - 1] ? 0 : 1;
+      this.inputs[inputNum] = this.inputs[inputNum] ? 0 : 1;
       this.reFeed();
     },
     reFeed() {
@@ -136,10 +160,6 @@ export default defineComponent({
   display: flex;
   flex-direction: column;
 }
-#outputs {
-  flex: 1 0 10%;
-  font-size: x-small;
-}
 #net-viz {
   flex: 1 0 0;
   width: 100%;
@@ -148,9 +168,53 @@ export default defineComponent({
 }
 #data {
   flex: 1 0 0;
-  overflow: scroll;
+  overflow-x: scroll;
+  overflow-y: scroll;
 }
 #train-button {
   height: 5ch;
+}
+#io-container {
+  display: flex;
+  flex-direction: row;
+}
+#io-inputs {
+  flex: 1 0 0;
+  display: flex;
+  flex-direction: column;
+}
+#io-outputs {
+  flex: 1 0 0;
+  display: flex;
+  flex-direction: column;
+}
+#io-in-top-spacer,
+#io-in-bottom-spacer,
+#io-out-top-spacer,
+#io-out-bottom-spacer {
+  flex: 1 0 0;
+}
+.io-index {
+  border-right: 1px dashed black;
+}
+tr.input-row:nth-child(even),
+tr.output-row:nth-child(even) {
+  background-color: #eeeeee;
+}
+tr.input-row:nth-child(odd),
+tr.output-row:nth-child(odd) {
+  background-color: #ffffff;
+}
+tr.input-row {
+  background-color: red;
+}
+div#io-container > div > table {
+  border-collapse: collapse;
+  margin-left: 0.5ch;
+  margin-right: 0.5ch;
+  text-align: center;
+}
+div#io-container > div > table > tr {
+  height: 2em;
 }
 </style>
