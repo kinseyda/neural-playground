@@ -42,7 +42,7 @@ feedfeedNet
       </div>
       <div>
         Epochs: <input v-model="epochs" min="1" type="number" />
-        <button @click="trainWithData(50)" id="train-button">
+        <button @click="trainWithData(epochs)" id="train-button">
           Train on data {{ epochs }} time{{ epochs > 1 ? "s" : "" }}
         </button>
       </div>
