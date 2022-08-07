@@ -1,6 +1,9 @@
-feedfeedNet
 <template>
-  <gate-display></gate-display>
+  <div id="app-outer">
+    <h1>Neural Playground - Logic gates</h1>
+
+    <gate-display></gate-display>
+  </div>
 </template>
 
 <script lang="ts">
@@ -19,4 +22,14 @@ export default defineComponent({
 });
 </script>
 
-<style></style>
+<style>
+#app-outer {
+  position: absolute;
+  top: 1ch;
+  left: 1ch;
+  right: 1ch;
+  bottom: 1ch;
+  display: flex;
+  flex-direction: column;
+}
+</style>

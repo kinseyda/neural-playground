@@ -1,6 +1,10 @@
 <template>
-  <button @click="fitNet">Fit</button>
-  <div id="net-container"></div>
+  <div id="viz-outer">
+    <div id="net-container"><div id="net"></div></div>
+    <div id="viz-buttons">
+      <button @click="fitNet" id="zoom-fit">Zoom to fit network</button>
+    </div>
+  </div>
 </template>
 
 <script lang="ts">
@@ -61,6 +65,7 @@ function makeNetData(net: Net): {
   const nodes = new DataSet<NeuronData>();
   const edges = new DataSet<ConnectionData>();
   const maxSize = Math.max(...net.sizes);
+  const xStretch = (maxSize / net.sizes.length) * (3 / 2); // Makes networks have a good aspect ratio
   for (let i = 0; i < net.sizes.length; i++) {
     const curSize = net.sizes[i];
     for (let j = 0; j < curSize; j++) {
@@ -78,8 +83,8 @@ function makeNetData(net: Net): {
           highlight: { background: nodeColor },
         },
         opacity: 1,
-        x: i * 200,
-        y: (j + yOffset) * 150,
+        x: i * 100 * xStretch,
+        y: (j + yOffset) * 100,
         title: `Node ${getNodeId(net.sizes, i, j)}\nBias: ${net.biases[i][j]}`,
       });
 
@@ -136,7 +141,7 @@ export default defineComponent({
     },
   },
   mounted() {
-    container = document.getElementById("net-container");
+    container = document.getElementById("net");
     if (!container) {
       return;
     }
@@ -234,8 +239,28 @@ export default defineComponent({
 
 <style scoped>
 #net-container {
-  width: 100%;
-  height: 100%;
+  flex: 1 0 0;
   border: 1px solid black;
+  position: relative;
+}
+#net {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  right: 0px;
+  bottom: 0px;
+}
+#viz-outer {
+  flex: 1 0 100%;
+  display: flex;
+  flex-direction: column;
+}
+#viz-buttons {
+  display: flex;
+  flex-direction: row;
+}
+#zoom-fit {
+  flex: 1 0 0;
+  height: 5ch;
 }
 </style>

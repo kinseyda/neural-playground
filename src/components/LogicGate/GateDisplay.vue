@@ -1,33 +1,52 @@
 feedfeedNet
 <template>
   <div id="outer">
-    <div v-for="inputNum in net.sizes[0]" :key="inputNum">
-      <button @click="toggleInput(inputNum)">
-        {{ inputNum - 1 }}
-      </button>
+    <div id="io-setup-col">
+      <h2>Network setup</h2>
+      <div id="net-setup">
+        <size-selector v-model="netSizes"></size-selector>
+        <button @click="newNet()">Reset network</button>
+      </div>
+      <h2>Input/Output Testing</h2>
+      <div id="io-container">
+        <div v-for="inputNum in net.sizes[0]" :key="inputNum">
+          <button @click="toggleInput(inputNum)">
+            {{ inputNum - 1 }}
+          </button>
+        </div>
+        {{ inputs }}
+        <div id="outputs">
+          <ol start="0">
+            <li v-for="(out, index) in mostRecentResult" :key="index">
+              <b>{{ out.toFixed(2) }}</b>
+            </li>
+          </ol>
+        </div>
+      </div>
     </div>
-    {{ inputs }}
-    <div id="outputs">
-      <ol start="0">
-        <li v-for="(out, index) in mostRecentResult" :key="index">
-          <b>{{ out.toFixed(2) }}</b>
-        </li>
-      </ol>
+    <div id="viz-col">
+      <h2>View</h2>
+      <div id="net-viz">
+        <net-visualizer ref="netViz"></net-visualizer>
+      </div>
     </div>
-    <div>
-      <size-selector v-model="netSizes"></size-selector>
+    <div id="train-col">
+      <h2>Train</h2>
+      <div id="data">
+        <gate-i-o-selector
+          v-model="trainData"
+          :inputSize="net.sizes[0]"
+          :outputSize="net.sizes[net.sizes.length - 1]"
+        >
+        </gate-i-o-selector>
+      </div>
+      <div>
+        Epochs: <input v-model="epochs" min="1" type="number" />
+        <button @click="trainWithData(50)" id="train-button">
+          Train on data {{ epochs }} time{{ epochs > 1 ? "s" : "" }}
+        </button>
+      </div>
     </div>
-    <div id="net-viz">
-      <net-visualizer ref="netViz"></net-visualizer>
-    </div>
-    <div id="data">
-      <gate-i-o-selector
-        v-model="trainData"
-        :inputSize="net.sizes[0]"
-        :outputSize="net.sizes[net.sizes.length - 1]"
-      ></gate-i-o-selector>
-    </div>
-    <button @click="trainWithData(50)">Train on data 50 times</button>
   </div>
 </template>
 
@@ -51,7 +70,7 @@ export default defineComponent({
       inputs: [] as number[],
       mostRecentResult: [] as number[],
       trainData: [] as TrainingExample[],
-      curAccuracy: 0,
+      epochs: 1,
     };
   },
   watch: {
@@ -99,16 +118,39 @@ export default defineComponent({
 
 <style scoped>
 #outer {
+  flex: 1 0 0;
   display: flex;
   flex-direction: row;
+  overflow: hidden;
+}
+#io-setup-col {
+  flex: 0 0 25%;
+}
+#viz-col {
+  flex: 0 0 50%;
+  display: flex;
+  flex-direction: column;
+}
+#train-col {
+  flex: 0 0 25%;
+  display: flex;
+  flex-direction: column;
 }
 #outputs {
   flex: 1 0 10%;
   font-size: x-small;
 }
 #net-viz {
-  flex: 1 0 50%;
-  width: 50ch;
-  height: 50ch;
+  flex: 1 0 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+#data {
+  flex: 1 0 0;
+  overflow: scroll;
+}
+#train-button {
+  height: 5ch;
 }
 </style>

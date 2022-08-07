@@ -1,7 +1,4 @@
-import EmnistImage from "@/data/emnist-image";
-import { feed, Network, train, TrainingExample } from "../network";
-import { formatTimeString } from "@/format";
-import { longForLoop } from "@/long-loop";
+import { Network } from "../network";
 
 export class LogicGateNet extends Network {
   constructor(sizes?: number[], learningRate?: number) {
