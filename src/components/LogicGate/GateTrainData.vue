@@ -3,10 +3,10 @@
     <div id="input-col">
       <table>
         <colgroup>
-          <col :span="inputSize" />
+          <col :span="inputSize + 1" />
         </colgroup>
         <tr>
-          <td :colspan="inputSize">
+          <td :colspan="inputSize + 1">
             <small>Inputs</small>
           </td>
         </tr>
@@ -15,6 +15,7 @@
           :key="dataIndex"
           class="data-row"
         >
+          <td class="input-index">{{ dataIndex }}</td>
           <td
             v-for="inputDigit in numToBinList(dataIndex, inputSize)"
             :key="inputDigit"
@@ -41,7 +42,9 @@
           class="data-row"
         >
           <td>
-            <button @click="curList[dataIndex] = -1 - curList[dataIndex]">
+            <button
+              @click="curList[dataIndex] = curList[dataIndex] == -1 ? 0 : -1"
+            >
               {{ curList[dataIndex] != -1 }}
             </button>
           </td>
@@ -54,10 +57,10 @@
     <div id="output-col">
       <table>
         <colgroup>
-          <col v-for="num in outputSize" :key="num" class="outlined" />
+          <col v-for="num in outputSize + 1" :key="num" class="outlined" />
         </colgroup>
         <tr>
-          <td :colspan="outputSize">
+          <td :colspan="outputSize + 1">
             <small>Outputs</small>
           </td>
         </tr>
@@ -78,6 +81,15 @@
               {{ numToBinList(curList[dataIndex], outputSize)[outputIndex] }}
             </button>
           </td>
+          <td class="output-value">
+            <input
+              v-if="curList[dataIndex] != -1"
+              v-model="curList[dataIndex]"
+              type="number"
+              :max="2 ** outputSize - 1"
+              min="0"
+            />
+          </td>
         </tr>
       </table>
     </div>
@@ -90,11 +102,11 @@ import { TrainingExample } from "@/network/network";
 import { defineComponent } from "vue";
 
 export default defineComponent({
-  name: "GateIOSelector",
+  name: "GateTrainData",
   props: ["modelValue", "inputSize", "outputSize"],
   data() {
     return {
-      curList: this.setCurList() as number[],
+      curList: [] as number[],
     };
   },
   emits: ["update:modelValue"],
@@ -107,12 +119,12 @@ export default defineComponent({
     },
     inputSize: {
       handler() {
-        this.curList = this.setCurList();
+        this.setCurList(this.modelValue);
       },
     },
     outputSize: {
       handler() {
-        this.curList = this.setCurList();
+        this.setCurList(this.modelValue);
       },
     },
   },
@@ -132,22 +144,17 @@ export default defineComponent({
     numToBinList(num: number, size: number) {
       return numToBinList(num, size);
     },
-    setCurList() {
-      const arr: number[] = [];
-      for (let i = 0; i < 2 ** this.inputSize; i++) {
-        const input = this.modelValue[i]
-            ? binListToNum(this.modelValue[i].inputs)
-            : i,
-          output = this.modelValue[i]
-            ? binListToNum(this.modelValue[i].expectedOutputs) <
-              2 ** this.outputSize // If output size has shrunk, use max value if necessary
-              ? binListToNum(this.modelValue[i].expectedOutputs)
-              : 2 ** this.outputSize - 1
-            : -1;
-        console.log(`input:${input}, output:${output}`);
+    setCurList(modelVal: TrainingExample[]) {
+      const arr = new Array(2 ** this.inputSize).fill(-1);
+      for (const ex of modelVal) {
+        const input = binListToNum(ex.inputs),
+          output =
+            binListToNum(ex.expectedOutputs) < 2 ** this.outputSize // If output size has shrunk, use max value if necessary
+              ? binListToNum(ex.expectedOutputs)
+              : 2 ** this.outputSize - 1;
         arr[input] = output;
       }
-      return arr;
+      this.curList = arr;
     },
     toggleDatum(input: number, output: number) {
       const oldOutputs = numToBinList(this.curList[input], this.outputSize);
@@ -161,6 +168,9 @@ export default defineComponent({
         this.curList = new Array(2 ** this.inputSize).fill(-1);
       }
     },
+  },
+  mounted() {
+    this.setCurList(this.modelValue);
   },
 });
 </script>
@@ -213,5 +223,16 @@ td {
 small {
   margin-left: 0.25ch;
   margin-right: 0.25ch;
+}
+.input-index {
+  border-right: 1px dashed black;
+  width: 3ch;
+}
+.output-value {
+  border-left: 1px dashed black;
+}
+.output-value > input {
+  width: 6ch;
+  font-size: small;
 }
 </style>

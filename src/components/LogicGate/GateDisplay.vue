@@ -7,46 +7,12 @@ feedfeedNet
         <size-selector
           v-model="netSizes"
           :locked="{ inputMax: 8, hiddenMax: 8, outputMax: 8, layersMax: 8 }"
-        ></size-selector>
+        >
+        </size-selector>
         <button @click="newNet()">Reset network</button>
       </div>
       <h2>Input/Output Testing</h2>
-      <div id="io-container">
-        <div id="io-inputs">
-          <p>Inputs:</p>
-          <div id="io-in-top-spacer"></div>
-          <table>
-            <tr
-              v-for="(_, inputNum) in net.sizes[0]"
-              :key="inputNum"
-              class="input-row"
-            >
-              <td class="io-index">{{ inputNum }}</td>
-              <td>
-                <button @click="toggleInput(inputNum)">
-                  {{ inputs[inputNum] }}
-                </button>
-              </td>
-            </tr>
-          </table>
-          <div id="io-in-bottom-spacer"></div>
-        </div>
-        <div id="io-outputs">
-          <p>Outputs:</p>
-          <div id="io-out-top-spacer"></div>
-          <table>
-            <tr
-              v-for="(output, outputNum) in mostRecentResult"
-              :key="outputNum"
-              class="output-row"
-            >
-              <td class="io-index">{{ outputNum }}</td>
-              <td>{{ output.toFixed(4) }}</td>
-            </tr>
-          </table>
-          <div id="io-out-bottom-spacer"></div>
-        </div>
-      </div>
+      <gate-i-o v-model:inputs="inputs" :outputs="mostRecentResult"></gate-i-o>
     </div>
     <div id="viz-col">
       <h2>View</h2>
@@ -56,16 +22,50 @@ feedfeedNet
     </div>
     <div id="train-col">
       <h2>Train</h2>
+      <div>
+        Preset data:
+        <select @change="newPreset">
+          <option
+            value="-1"
+            :selected="
+              -1 ==
+              examples.findIndex(
+                (x) => JSON.stringify(x.data) === JSON.stringify(trainData)
+              )
+            "
+          ></option>
+          <option
+            v-for="(ex, index) in examples"
+            :key="index"
+            :value="index"
+            :disabled="
+              !(
+                ex.inputSize == net.sizes[0] &&
+                ex.outputSize == net.sizes[net.sizes.length - 1]
+              )
+            "
+            :selected="
+              index ==
+              examples.findIndex(
+                (x) => JSON.stringify(x.data) === JSON.stringify(trainData)
+              )
+            "
+          >
+            {{ ex.name }} {{ ex.inputSize }}/{{ ex.outputSize }}
+          </option>
+        </select>
+      </div>
       <div id="data">
-        <gate-i-o-selector
+        <gate-train-data
+          ref="gateTrainData"
           v-model="trainData"
           :inputSize="net.sizes[0]"
           :outputSize="net.sizes[net.sizes.length - 1]"
         >
-        </gate-i-o-selector>
+        </gate-train-data>
       </div>
-      <div>
-        Epochs: <input v-model="epochs" min="1" type="number" />
+      <div id="train-button-cont">
+        <div>Epochs: <input v-model="epochs" min="1" type="number" /></div>
         <button @click="trainWithData(epochs)" id="train-button">
           Train on data {{ epochs }} time{{ epochs > 1 ? "s" : "" }}
         </button>
@@ -79,16 +79,19 @@ import { defineComponent } from "vue";
 import { getHottest, numToBinList } from "@/network/helpers";
 import { LogicGateNet } from "@/network/nets/logic-gate-net";
 import { feed, TrainingExample } from "@/network/network";
-import GateIOSelector from "./GateIOSelector.vue";
+import GateTrainData from "./GateTrainData.vue";
 import NetVisualizer from "@/components/Network/NetVisualizer.vue";
 import SizeSelector from "@/components/Network/SizeSelector.vue";
 import { train } from "@/network/network";
+import GateIO from "./GateIO.vue";
+import { examples } from "@/data/logic-gates/gate-examples";
 
 export default defineComponent({
   name: "GateDisplay",
-  components: { GateIOSelector, NetVisualizer, SizeSelector },
+  components: { GateTrainData, NetVisualizer, SizeSelector, GateIO },
   data() {
     return {
+      examples: examples,
       netSizes: [2, 2, 1],
       net: new LogicGateNet(),
       inputs: [] as number[],
@@ -102,6 +105,12 @@ export default defineComponent({
       deep: true,
       handler() {
         this.newNet();
+      },
+    },
+    inputs: {
+      deep: true,
+      handler() {
+        this.reFeed();
       },
     },
   },
@@ -121,6 +130,7 @@ export default defineComponent({
       for (let i = 0; i < epochs; i++) {
         train(this.trainData, this.net);
       }
+      this.reFeed();
       this.updateVisualizer();
     },
     newNet() {
@@ -131,11 +141,19 @@ export default defineComponent({
     updateVisualizer() {
       (this.$refs["netViz"] as typeof NetVisualizer).updateNet(this.net);
     },
+    newPreset(data: Event) {
+      if (Number((data.target as HTMLOptionElement).value) == -1) {
+        return;
+      }
+      (this.$refs["gateTrainData"] as typeof GateTrainData).setCurList(
+        examples[Number((data.target as HTMLOptionElement).value)].data
+      );
+    },
   },
   mounted() {
     this.newNet();
     this.reFeed();
-    setInterval(this.reFeed, 250);
+    // setInterval(this.reFeed, 250);
   },
 });
 </script>
@@ -147,74 +165,44 @@ export default defineComponent({
   flex-direction: row;
   overflow: hidden;
 }
+
 #io-setup-col {
-  flex: 0 0 25%;
+  flex: 0 0 20%;
 }
+
 #viz-col {
   flex: 0 0 50%;
   display: flex;
   flex-direction: column;
 }
+
 #train-col {
-  flex: 0 0 25%;
+  flex: 0 0 30%;
   display: flex;
   flex-direction: column;
 }
+
 #net-viz {
   flex: 1 0 0;
   width: 100%;
   display: flex;
   flex-direction: column;
 }
+
 #data {
   flex: 1 0 0;
   overflow-x: scroll;
   overflow-y: scroll;
 }
+
 #train-button {
   height: 5ch;
 }
-#io-container {
-  display: flex;
-  flex-direction: row;
-}
-#io-inputs {
-  flex: 1 0 0;
-  display: flex;
-  flex-direction: column;
-}
-#io-outputs {
-  flex: 1 0 0;
-  display: flex;
-  flex-direction: column;
-}
-#io-in-top-spacer,
-#io-in-bottom-spacer,
-#io-out-top-spacer,
-#io-out-bottom-spacer {
-  flex: 1 0 0;
-}
-.io-index {
-  border-right: 1px dashed black;
-}
-tr.input-row:nth-child(even),
-tr.output-row:nth-child(even) {
-  background-color: #eeeeee;
-}
-tr.input-row:nth-child(odd),
-tr.output-row:nth-child(odd) {
-  background-color: #ffffff;
-}
-tr.input-row {
-  background-color: red;
-}
-div#io-container > div > table {
-  border-collapse: collapse;
+
+#train-button-cont {
+  margin-top: 1ch;
   margin-left: 0.5ch;
-  margin-right: 0.5ch;
-  text-align: center;
-}
-div#io-container > div > table > tr {
-  height: 2em;
+  display: flex;
+  flex-direction: column;
 }
 </style>
