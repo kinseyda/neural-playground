@@ -1,4 +1,4 @@
-import EmnistImage from "@/data/emnist-image";
+import EmnistImage from "@/data/EMNIST/emnist-image";
 import { feed, Network, train, TrainingExample } from "../network";
 import { formatTimeString } from "@/format";
 import { longForLoop } from "@/long-loop";
@@ -8,10 +8,10 @@ export let emnistData: EmnistImage[] | undefined = undefined,
   testEmnistData: EmnistImage[] | undefined = undefined;
 
 export function loadEmnist() {
-  import("@/data/digits_train_data.json").then(({ default: module }) => {
+  import("@/data/EMNIST/digits_train_data.json").then(({ default: module }) => {
     emnistData = module as EmnistImage[];
   });
-  import("@/data/digits_test_data.json").then(({ default: module }) => {
+  import("@/data/EMNIST/digits_test_data.json").then(({ default: module }) => {
     testEmnistData = module as EmnistImage[];
   });
 }
