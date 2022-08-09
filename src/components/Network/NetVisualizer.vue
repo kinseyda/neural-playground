@@ -24,7 +24,7 @@ interface NeuronData {
     hover: { background: string };
     highlight: { background: string };
   };
-  title: string;
+  title: HTMLDivElement;
   opacity: number;
   x: number;
   y: number;
@@ -58,6 +58,24 @@ function getConId(
   return passedWeights + row * sizes[layer - 1] + weight;
 }
 
+function getNodeEquation(net: Net, layer: number, row: number): string {
+  let str = "";
+  for (let i = 0; i < net.sizes[layer - 1]; i++) {
+    str = `${str}a<sub>${i}</sub> × ${net.weights[layer][row][i].toFixed(
+      4
+    )} + </br>`;
+  }
+  str = `${str}${net.biases[layer][row] < 0 ? "-" : "+"} ${Math.abs(
+    net.biases[layer][row]
+  ).toFixed(4)}</br>`;
+  return str;
+}
+function htmlTitle(html: string): HTMLDivElement {
+  const container = document.createElement("div");
+  container.innerHTML = html;
+  return container;
+}
+
 function makeNetData(net: Net): {
   nodes: DataSet<NeuronData>;
   edges: DataSet<ConnectionData>;
@@ -85,7 +103,21 @@ function makeNetData(net: Net): {
         opacity: 1,
         x: i * 100 * xStretch,
         y: (j + yOffset) * 100,
-        title: `Node ${getNodeId(net.sizes, i, j)}\nBias: ${net.biases[i][j]}`,
+        title: htmlTitle(
+          `L${i}, N${j} (NID ${getNodeId(net.sizes, i, j)})</br>${
+            i == 0
+              ? "Input Layer"
+              : i == net.sizes.length - 1
+              ? "Output Layer"
+              : "Hidden layer"
+          }</br>${
+            i != 0
+              ? `Bias: ${net.biases[i][j].toFixed(
+                  4
+                )}</br>Activation equation:</br>${getNodeEquation(net, i, j)}`
+              : ""
+          }`
+        ),
       });
 
       if (i > 0) {
@@ -98,9 +130,12 @@ function makeNetData(net: Net): {
               "green red",
               sigmoid(-1 * net.weights[i][j][k])
             ),
-            title: `Connection ${getConId(net.sizes, i, j, k)}\nWeight: ${
-              net.weights[i][j][k]
-            }`,
+            title: `L${i}, N${j}, W${k} (CID ${getConId(
+              net.sizes,
+              i,
+              j,
+              k
+            )})\nWeight: ${net.weights[i][j][k].toFixed(4)}`,
             hidden: false,
           });
         }
@@ -202,13 +237,13 @@ export default defineComponent({
           if (!netData) {
             return;
           }
-          netData.nodes.updateOnly({ id: dimmedNodes[index], opacity: 0.5 });
+          netData.nodes.update({ id: dimmedNodes[index], opacity: 0.5 });
         }).then(() => {
           longForLoop(hiddenEdges.length, 50, {}, (index: number) => {
             if (!netData) {
               return;
             }
-            netData.edges.updateOnly({ id: hiddenEdges[index], hidden: true });
+            netData.edges.update({ id: hiddenEdges[index], hidden: true });
           });
         });
       }
@@ -223,13 +258,13 @@ export default defineComponent({
         if (!netData) {
           return;
         }
-        netData.nodes.updateOnly({ id: nodeIds[index], opacity: 1 });
+        netData.nodes.update({ id: nodeIds[index], opacity: 1 });
       }).then(() => {
         longForLoop(edgeIds.length, 50, {}, (index: number) => {
           if (!netData) {
             return;
           }
-          netData.edges.updateOnly({ id: edgeIds[index], hidden: false });
+          netData.edges.update({ id: edgeIds[index], hidden: false });
         });
       });
     });
