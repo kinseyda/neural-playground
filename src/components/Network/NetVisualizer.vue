@@ -233,19 +233,16 @@ export default defineComponent({
           },
         }) as number[];
 
-        longForLoop(dimmedNodes.length, 50, {}, (index: number) => {
-          if (!netData) {
-            return;
-          }
-          netData.nodes.update({ id: dimmedNodes[index], opacity: 0.5 });
-        }).then(() => {
-          longForLoop(hiddenEdges.length, 50, {}, (index: number) => {
-            if (!netData) {
-              return;
-            }
-            netData.edges.update({ id: hiddenEdges[index], hidden: true });
-          });
-        });
+        netData.nodes.update(
+          dimmedNodes.map((x) => {
+            return { id: x, opacity: 0.5 };
+          })
+        );
+        netData.edges.update(
+          hiddenEdges.map((x) => {
+            return { id: x, hidden: true };
+          })
+        );
       }
     );
     visNet.on("deselectNode", function () {
@@ -254,19 +251,16 @@ export default defineComponent({
       }
       const nodeIds = netData.nodes.getIds() as number[];
       const edgeIds = netData.edges.getIds() as number[];
-      longForLoop(nodeIds.length, 50, {}, (index: number) => {
-        if (!netData) {
-          return;
-        }
-        netData.nodes.update({ id: nodeIds[index], opacity: 1 });
-      }).then(() => {
-        longForLoop(edgeIds.length, 50, {}, (index: number) => {
-          if (!netData) {
-            return;
-          }
-          netData.edges.update({ id: edgeIds[index], hidden: false });
-        });
-      });
+      netData.nodes.update(
+        nodeIds.map((x) => {
+          return { id: x, opacity: 1 };
+        })
+      );
+      netData.edges.update(
+        edgeIds.map((x) => {
+          return { id: x, hidden: false };
+        })
+      );
     });
   },
 });
