@@ -77,6 +77,14 @@
             <button
               v-if="curList[dataIndex] != -1"
               @click="toggleDatum(dataIndex, outputIndex)"
+              :class="{
+                'button-one':
+                  numToBinList(curList[dataIndex], outputSize)[outputIndex] ==
+                  1,
+                'button-zero':
+                  numToBinList(curList[dataIndex], outputSize)[outputIndex] ==
+                  0,
+              }"
             >
               {{ numToBinList(curList[dataIndex], outputSize)[outputIndex] }}
             </button>
@@ -154,7 +162,7 @@ export default defineComponent({
               : 2 ** this.outputSize - 1;
         arr[input] = output;
       }
-      this.curList = arr;
+      this.curList = arr.slice(0, 2 ** 8); // Slice in case modelVal originally contains too many values
     },
     toggleDatum(input: number, output: number) {
       const oldOutputs = numToBinList(this.curList[input], this.outputSize);
@@ -234,5 +242,14 @@ small {
 .output-value > input {
   width: 6ch;
   font-size: small;
+}
+
+.button-zero {
+  background: black;
+  color: white;
+}
+.button-one {
+  background: white;
+  color: black;
 }
 </style>
