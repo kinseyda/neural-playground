@@ -58,22 +58,32 @@ export default defineComponent({
       this.$emit("update:modelValue", this.curList);
     },
     increment(index: number) {
-      let maxSize = (this.locked as Locked).hiddenMax || Infinity;
-      if (index == 0) maxSize = (this.locked as Locked).inputMax || Infinity;
-      if (index == this.curList.length - 1)
-        maxSize = (this.locked as Locked).outputMax || Infinity;
-
-      if (this.curList[index] < maxSize) this.curList[index] += 1;
+      this.curList[index] += 1;
+      this.checkSizes();
     },
     decrement(index: number) {
-      if (this.curList[index] > 1) this.curList[index] -= 1;
+      this.curList[index] -= 1;
+      this.checkSizes();
     },
     remove(index: number) {
       if (this.curList.length > 2) this.curList.splice(index, 1);
+      this.checkSizes();
     },
     add() {
       if (this.curList.length < ((this.locked as Locked).layersMax || Infinity))
         this.curList.push(1);
+    },
+    checkSizes() {
+      for (let i = 0; i < this.curList.length; i++) {
+        let maxSize = (this.locked as Locked).hiddenMax || Infinity;
+        if (i == 0) maxSize = (this.locked as Locked).inputMax || Infinity;
+        if (i == this.curList.length - 1)
+          maxSize = (this.locked as Locked).outputMax || Infinity;
+
+        if (this.curList[i] > maxSize) this.curList[i] = maxSize;
+
+        if (this.curList[i] < 1) this.curList[i] = 1;
+      }
     },
   },
 });

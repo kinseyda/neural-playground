@@ -6,7 +6,7 @@ feedfeedNet
       <div id="net-setup">
         <size-selector
           v-model="netSizes"
-          :locked="{ inputMax: 8, hiddenMax: 8, outputMax: 8, layersMax: 8 }"
+          :locked="{ inputMax: 8, hiddenMax: 16, outputMax: 8, layersMax: 6 }"
         >
         </size-selector>
         <button @click="newNet()">Reset network</button>
