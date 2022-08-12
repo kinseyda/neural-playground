@@ -65,6 +65,7 @@ feedfeedNet
         </gate-train-data>
       </div>
       <div id="train-button-cont">
+        <progress-bar :level="progressLevel"></progress-bar>
         <div>Epochs: <input v-model="epochs" min="1" type="number" /></div>
         <button @click="trainWithData(epochs)" id="train-button">
           Train on data {{ epochs }} time{{ epochs > 1 ? "s" : "" }}
@@ -85,10 +86,18 @@ import SizeSelector from "@/components/Network/SizeSelector.vue";
 import { train } from "@/network/network";
 import GateIO from "./GateIO.vue";
 import { examples } from "@/data/logic-gates/gate-examples";
+import ProgressBar from "../ProgressBar.vue";
+import { longForLoop } from "@/long-loop";
 
 export default defineComponent({
   name: "GateDisplay",
-  components: { GateTrainData, NetVisualizer, SizeSelector, GateIO },
+  components: {
+    GateTrainData,
+    NetVisualizer,
+    SizeSelector,
+    GateIO,
+    ProgressBar,
+  },
   data() {
     return {
       examples: examples,
@@ -98,6 +107,7 @@ export default defineComponent({
       mostRecentResult: [] as number[],
       trainData: [] as TrainingExample[],
       epochs: 1,
+      progressLevel: 0,
     };
   },
   watch: {
@@ -127,11 +137,16 @@ export default defineComponent({
       return getHottest(arr);
     },
     trainWithData(epochs: number) {
-      for (let i = 0; i < epochs; i++) {
-        train(this.trainData, this.net);
+      if (this.trainData.length < 1) {
+        return;
       }
-      this.reFeed();
-      this.updateVisualizer();
+      this.progressLevel = 0;
+      longForLoop(epochs, 20, {}, (index) => {
+        train(this.trainData, this.net);
+        this.progressLevel = (index + 1) / epochs;
+        this.reFeed();
+        this.updateVisualizer();
+      });
     },
     newNet() {
       this.net = new LogicGateNet(this.netSizes);
