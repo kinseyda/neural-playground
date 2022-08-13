@@ -2,8 +2,8 @@ feedfeedNet
 <template>
   <div id="outer">
     <div id="io-setup-col">
-      <h2>Network setup</h2>
       <div id="net-setup">
+        <h2>Network setup</h2>
         <size-selector
           v-model="netSizes"
           :locked="{ inputMax: 8, hiddenMax: 16, outputMax: 8, layersMax: 6 }"
@@ -11,8 +11,23 @@ feedfeedNet
         </size-selector>
         <button @click="newNet()">Reset network</button>
       </div>
-      <h2>Input/Output Testing</h2>
-      <gate-i-o v-model:inputs="inputs" :outputs="mostRecentResult"></gate-i-o>
+      <div id="interact">
+        <h2>Input/Output Testing</h2>
+        <h3>Interact</h3>
+        <gate-i-o
+          v-model:inputs="inputs"
+          :outputs="mostRecentResult"
+        ></gate-i-o>
+      </div>
+      <div id="t-t-outer">
+        <h3>Truth Table</h3>
+        <div>
+          <test-truth-table
+            :net="net"
+            :trainData="trainData"
+          ></test-truth-table>
+        </div>
+      </div>
     </div>
     <div id="viz-col">
       <h2>View</h2>
@@ -88,6 +103,7 @@ import GateIO from "./GateIO.vue";
 import { examples } from "@/data/logic-gates/gate-examples";
 import ProgressBar from "../ProgressBar.vue";
 import { longForLoop } from "@/long-loop";
+import TestTruthTable from "./TestTruthTable.vue";
 
 export default defineComponent({
   name: "GateDisplay",
@@ -97,6 +113,7 @@ export default defineComponent({
     SizeSelector,
     GateIO,
     ProgressBar,
+    TestTruthTable,
   },
   data() {
     return {
@@ -183,6 +200,8 @@ export default defineComponent({
 
 #io-setup-col {
   flex: 0 0 20%;
+  display: flex;
+  flex-direction: column;
 }
 
 #viz-col {
@@ -205,6 +224,14 @@ export default defineComponent({
 }
 
 #data {
+  flex: 1 0 0;
+  overflow-x: scroll;
+  overflow-y: scroll;
+}
+#interact {
+  flex: 1 0 0;
+}
+#t-t-outer {
   flex: 1 0 0;
   overflow-x: scroll;
   overflow-y: scroll;
