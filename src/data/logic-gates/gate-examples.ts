@@ -122,4 +122,20 @@ export const examples: GateExample[] = [
       { inputs: numToBinList(7, 3), expectedOutputs: [1, 1] },
     ],
   },
+  {
+    name: "Prime Numbers",
+    inputSize: 8,
+    outputSize: 1,
+    data: Array.from(Array(2 ** 8).keys()).map((i) => {
+      const isPrime = (num: number) => {
+        for (let i = 2, s = Math.sqrt(num); i <= s; i++)
+          if (num % i === 0) return false;
+        return num > 1;
+      };
+      return {
+        inputs: numToBinList(i, 8),
+        expectedOutputs: [isPrime(i) ? 1 : 0],
+      };
+    }),
+  },
 ];
