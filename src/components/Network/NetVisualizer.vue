@@ -1,8 +1,14 @@
 <template>
   <div id="viz-outer">
-    <div id="net-container"><div id="net"></div></div>
+    <div id="net-container">
+      <span v-if="!visActive" id="paused-indicator">Visualization Paused!</span>
+      <div id="net"></div>
+    </div>
     <div id="viz-buttons">
       <button @click="fitNet" id="zoom-fit">Zoom to fit network</button>
+      <button @click="toggleVisualization" id="toggle-vis">
+        {{ visActive ? "Disable" : "Enable" }} visualization updates
+      </button>
     </div>
   </div>
 </template>
@@ -14,7 +20,6 @@ import { getColorScale } from "../color";
 import { sigmoid } from "@/network/math-functions";
 import { Network } from "vis-network/peer";
 import { DataSet } from "vis-data";
-import { longForLoop } from "@/long-loop";
 import "vis-network/styles/vis-network.css";
 
 interface NeuronData {
@@ -76,6 +81,43 @@ function htmlTitle(html: string): HTMLDivElement {
   return container;
 }
 
+function getConColor(net: Net, layer: number, node: number, weight: number) {
+  return getColorScale(
+    "green red",
+    sigmoid(-1 * net.weights[layer][node][weight])
+  );
+}
+function getConTitle(net: Net, layer: number, node: number, weight: number) {
+  return `L${layer}, N${node}, W${weight} (CID ${getConId(
+    net.sizes,
+    layer,
+    node,
+    weight
+  )})\nWeight: ${net.weights[layer][node][weight].toFixed(4)}`;
+}
+function getNodeColor(net: Net, layer: number, node: number) {
+  return layer == 0
+    ? "#FFFFFF"
+    : getColorScale("green red", sigmoid(-1 * net.biases[layer][node]));
+}
+function getNodeTitle(net: Net, layer: number, node: number) {
+  return htmlTitle(
+    `L${layer}, N${node} (NID ${getNodeId(net.sizes, layer, node)})</br>${
+      layer == 0
+        ? "Input Layer"
+        : layer == net.sizes.length - 1
+        ? "Output Layer"
+        : "Hidden layer"
+    }</br>${
+      layer != 0
+        ? `Bias: ${net.biases[layer][node].toFixed(
+            4
+          )}</br>Activation equation:</br>${getNodeEquation(net, layer, node)}`
+        : ""
+    }`
+  );
+}
+
 function makeNetData(net: Net): {
   nodes: DataSet<NeuronData>;
   edges: DataSet<ConnectionData>;
@@ -87,10 +129,7 @@ function makeNetData(net: Net): {
   for (let i = 0; i < net.sizes.length; i++) {
     const curSize = net.sizes[i];
     for (let j = 0; j < curSize; j++) {
-      const nodeColor =
-        i == 0
-          ? "#FFFFFF"
-          : getColorScale("green red", sigmoid(-1 * net.biases[i][j]));
+      const nodeColor = getNodeColor(net, i, j);
       const yOffset = curSize == maxSize ? 0 : (maxSize - curSize) / 2; // Makes sure that layers are vertically centered
       nodes.add({
         id: getNodeId(net.sizes, i, j),
@@ -103,21 +142,7 @@ function makeNetData(net: Net): {
         opacity: 1,
         x: i * 100 * xStretch,
         y: (j + yOffset) * 100,
-        title: htmlTitle(
-          `L${i}, N${j} (NID ${getNodeId(net.sizes, i, j)})</br>${
-            i == 0
-              ? "Input Layer"
-              : i == net.sizes.length - 1
-              ? "Output Layer"
-              : "Hidden layer"
-          }</br>${
-            i != 0
-              ? `Bias: ${net.biases[i][j].toFixed(
-                  4
-                )}</br>Activation equation:</br>${getNodeEquation(net, i, j)}`
-              : ""
-          }`
-        ),
+        title: getNodeTitle(net, i, j),
       });
 
       if (i > 0) {
@@ -126,16 +151,8 @@ function makeNetData(net: Net): {
             id: getConId(net.sizes, i, j, k),
             from: getNodeId(net.sizes, i, j),
             to: getNodeId(net.sizes, i - 1, k),
-            color: getColorScale(
-              "green red",
-              sigmoid(-1 * net.weights[i][j][k])
-            ),
-            title: `L${i}, N${j}, W${k} (CID ${getConId(
-              net.sizes,
-              i,
-              j,
-              k
-            )})\nWeight: ${net.weights[i][j][k].toFixed(4)}`,
+            color: getConColor(net, i, j, k),
+            title: getConTitle(net, i, j, k),
             hidden: false,
           });
         }
@@ -155,18 +172,72 @@ let netData = null as {
 
 export default defineComponent({
   name: "NetVisualizer",
-  props: [],
+  props: ["net"],
   components: {},
   data() {
-    return {};
+    return { visActive: true };
   },
   methods: {
-    updateNet(net: Net) {
+    toggleVisualization() {
+      this.visActive = !this.visActive;
+      if (this.visActive) {
+        this.updateNetVals(); // Assumes that the prop has had time to update since a net size change
+      }
+    },
+    newNet(net: Net) {
       if (!container || !visNet) {
         return;
       }
       netData = makeNetData(net);
       visNet.setData(netData);
+    },
+    updateNetVals(netIn?: Net) {
+      if (!netData || !this.visActive) {
+        return;
+      }
+      const net = netIn || this.net;
+      const nodes: {
+        id: number;
+        color: {
+          background: string;
+          hover: { background: string };
+          highlight: { background: string };
+        };
+        title: HTMLDivElement;
+      }[] = [];
+      const edges: {
+        id: number;
+        color: string;
+        title: string;
+      }[] = [];
+
+      for (let i = 0; i < net.sizes.length; i++) {
+        const curSize = net.sizes[i];
+        for (let j = 0; j < curSize; j++) {
+          const nodeColor = getNodeColor(net, i, j);
+          nodes.push({
+            id: getNodeId(net.sizes, i, j),
+            color: {
+              background: nodeColor,
+              hover: { background: nodeColor },
+              highlight: { background: nodeColor },
+            },
+            title: getNodeTitle(net, i, j),
+          });
+
+          if (i > 0) {
+            for (let k = 0; k < net.sizes[i - 1]; k++) {
+              edges.push({
+                id: getConId(net.sizes, i, j, k),
+                color: getConColor(net, i, j, k),
+                title: getConTitle(net, i, j, k),
+              });
+            }
+          }
+        }
+      }
+      netData.nodes.update(nodes);
+      netData.edges.update(edges);
     },
     fitNet() {
       if (!visNet) {
@@ -291,5 +362,15 @@ export default defineComponent({
 #zoom-fit {
   flex: 1 0 0;
   height: 5ch;
+}
+#toggle-vis {
+  flex: 1 0 0;
+}
+#paused-indicator {
+  position: absolute;
+  color: red;
+  font-weight: bold;
+  top: 0px;
+  left: 0px;
 }
 </style>

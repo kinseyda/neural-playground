@@ -32,7 +32,7 @@ feedfeedNet
     <div id="viz-col">
       <h2>View</h2>
       <div id="net-viz">
-        <net-visualizer ref="netViz"></net-visualizer>
+        <net-visualizer ref="netViz" :net="net"></net-visualizer>
       </div>
     </div>
     <div id="train-col">
