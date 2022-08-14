@@ -80,7 +80,10 @@ feedfeedNet
         </gate-train-data>
       </div>
       <div id="train-button-cont">
-        <progress-bar :level="progressLevel"></progress-bar>
+        <progress-bar
+          :numerator="progressNum"
+          :denominator="progressDenom"
+        ></progress-bar>
         <div>Epochs: <input v-model="epochs" min="1" type="number" /></div>
         <button @click="trainWithData(epochs)" id="train-button">
           Train on data {{ epochs }} time{{ epochs > 1 ? "s" : "" }}
@@ -123,8 +126,9 @@ export default defineComponent({
       inputs: [] as number[],
       mostRecentResult: [] as number[],
       trainData: [] as TrainingExample[],
-      epochs: 1,
-      progressLevel: 0,
+      epochs: 10000,
+      progressNum: 0,
+      progressDenom: 1,
     };
   },
   watch: {
@@ -157,21 +161,29 @@ export default defineComponent({
       if (this.trainData.length < 1) {
         return;
       }
-      this.progressLevel = 0;
-      longForLoop(epochs, 20, {}, (index) => {
-        train(this.trainData, this.net);
-        this.progressLevel = (index + 1) / epochs;
-        this.reFeed();
-        this.updateVisualizer();
-      });
+      this.progressDenom = epochs;
+      this.progressNum = 0;
+      setTimeout(
+        () =>
+          longForLoop(epochs, 20, {}, (index) => {
+            train(this.trainData, this.net);
+            this.progressNum = index + 1;
+            this.reFeed();
+            this.updateNetVizVals();
+          }),
+        0
+      );
     },
     newNet() {
       this.net = new LogicGateNet(this.netSizes);
       this.inputs = new Array(this.net.sizes[0]).fill(0);
-      this.updateVisualizer();
+      this.newNetViz();
     },
-    updateVisualizer() {
-      (this.$refs["netViz"] as typeof NetVisualizer).updateNet(this.net);
+    newNetViz() {
+      (this.$refs["netViz"] as typeof NetVisualizer).newNet(this.net);
+    },
+    updateNetVizVals() {
+      (this.$refs["netViz"] as typeof NetVisualizer).updateNetVals(this.net);
     },
     newPreset(data: Event) {
       if (Number((data.target as HTMLOptionElement).value) == -1) {
