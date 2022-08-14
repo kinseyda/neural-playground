@@ -1,6 +1,9 @@
 <template>
   <div>
-    <table>
+    <button @click="tTEnabled = !tTEnabled">
+      {{ tTEnabled ? "Hide" : "Show" }} table
+    </button>
+    <table v-if="tTEnabled">
       <tr>
         <td :colspan="net.sizes[0] + 1">Inputs</td>
         <td :colspan="net.sizes[net.sizes.length - 1] + 1" class="left-border">
@@ -79,7 +82,7 @@ export default defineComponent({
   name: "TestTruthTable",
   props: ["net", "trainData"],
   data() {
-    return {};
+    return { tTEnabled: true };
   },
   computed: {
     outputs(): number[][] {
@@ -128,7 +131,6 @@ export default defineComponent({
       if (!this.trainMatrix || this.trainMatrix.length == 0) {
         return 1;
       }
-      console.log(this.trainMatrix);
       const arrEq = function (a: number[], b: number[]) {
         if (a.length != b.length) return false;
         for (let i = 0; i < a.length; i++) {

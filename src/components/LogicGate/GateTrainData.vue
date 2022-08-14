@@ -1,105 +1,110 @@
 <template>
-  <div id="table-cont">
-    <div id="input-col">
-      <table>
-        <colgroup>
-          <col :span="inputSize + 1" />
-        </colgroup>
-        <tr>
-          <td :colspan="inputSize + 1">
-            <small>Inputs</small>
-          </td>
-        </tr>
-        <tr
-          v-for="(_, dataIndex) in 2 ** inputSize"
-          :key="dataIndex"
-          class="data-row"
-        >
-          <td class="input-index">{{ dataIndex }}</td>
-          <td
-            v-for="inputDigit in numToBinList(dataIndex, inputSize)"
-            :key="inputDigit"
-            class="input-digit"
+  <div>
+    <button @click="tDEnabled = !tDEnabled">
+      {{ tDEnabled ? "Hide" : "Show" }} table
+    </button>
+    <div v-if="tDEnabled" id="table-cont">
+      <div id="input-col">
+        <table>
+          <colgroup>
+            <col :span="inputSize + 1" />
+          </colgroup>
+          <tr>
+            <td :colspan="inputSize + 1">
+              <small>Inputs</small>
+            </td>
+          </tr>
+          <tr
+            v-for="(_, dataIndex) in 2 ** inputSize"
+            :key="dataIndex"
+            class="data-row"
           >
-            <span>{{ inputDigit }}</span>
-          </td>
-        </tr>
-      </table>
-    </div>
-    <div id="use-col">
-      <table>
-        <colgroup>
-          <col />
-        </colgroup>
-        <tr>
-          <td>
-            <small>Enable</small>
-          </td>
-        </tr>
-        <tr
-          v-for="(_, dataIndex) in 2 ** inputSize"
-          :key="dataIndex"
-          class="data-row"
-        >
-          <td>
-            <button
-              @click="curList[dataIndex] = curList[dataIndex] == -1 ? 0 : -1"
+            <td class="input-index">{{ dataIndex }}</td>
+            <td
+              v-for="inputDigit in numToBinList(dataIndex, inputSize)"
+              :key="inputDigit"
+              class="input-digit"
             >
-              {{ curList[dataIndex] != -1 }}
-            </button>
-          </td>
-        </tr>
-        <tr>
-          <td><button @click="toggleAll">All</button></td>
-        </tr>
-      </table>
-    </div>
-    <div id="output-col">
-      <table>
-        <colgroup>
-          <col v-for="num in outputSize + 1" :key="num" class="outlined" />
-        </colgroup>
-        <tr>
-          <td :colspan="outputSize + 1">
-            <small>Outputs</small>
-          </td>
-        </tr>
-        <tr
-          v-for="(_, dataIndex) in 2 ** inputSize"
-          :key="dataIndex"
-          class="data-row"
-        >
-          <td
-            v-for="(_, outputIndex) in outputSize"
-            :key="outputIndex"
-            class="output-digit"
+              <span>{{ inputDigit }}</span>
+            </td>
+          </tr>
+        </table>
+      </div>
+      <div id="use-col">
+        <table>
+          <colgroup>
+            <col />
+          </colgroup>
+          <tr>
+            <td>
+              <small>Enable</small>
+            </td>
+          </tr>
+          <tr
+            v-for="(_, dataIndex) in 2 ** inputSize"
+            :key="dataIndex"
+            class="data-row"
           >
-            <button
-              v-if="curList[dataIndex] != -1"
-              @click="toggleDatum(dataIndex, outputIndex)"
-              :class="{
-                'button-one':
-                  numToBinList(curList[dataIndex], outputSize)[outputIndex] ==
-                  1,
-                'button-zero':
-                  numToBinList(curList[dataIndex], outputSize)[outputIndex] ==
-                  0,
-              }"
+            <td>
+              <button
+                @click="curList[dataIndex] = curList[dataIndex] == -1 ? 0 : -1"
+              >
+                {{ curList[dataIndex] != -1 }}
+              </button>
+            </td>
+          </tr>
+          <tr>
+            <td><button @click="toggleAll">All</button></td>
+          </tr>
+        </table>
+      </div>
+      <div id="output-col">
+        <table>
+          <colgroup>
+            <col v-for="num in outputSize + 1" :key="num" class="outlined" />
+          </colgroup>
+          <tr>
+            <td :colspan="outputSize + 1">
+              <small>Outputs</small>
+            </td>
+          </tr>
+          <tr
+            v-for="(_, dataIndex) in 2 ** inputSize"
+            :key="dataIndex"
+            class="data-row"
+          >
+            <td
+              v-for="(_, outputIndex) in outputSize"
+              :key="outputIndex"
+              class="output-digit"
             >
-              {{ numToBinList(curList[dataIndex], outputSize)[outputIndex] }}
-            </button>
-          </td>
-          <td class="output-value">
-            <input
-              v-if="curList[dataIndex] != -1"
-              v-model="curList[dataIndex]"
-              type="number"
-              :max="2 ** outputSize - 1"
-              min="0"
-            />
-          </td>
-        </tr>
-      </table>
+              <button
+                v-if="curList[dataIndex] != -1"
+                @click="toggleDatum(dataIndex, outputIndex)"
+                :class="{
+                  'button-one':
+                    numToBinList(curList[dataIndex], outputSize)[outputIndex] ==
+                    1,
+                  'button-zero':
+                    numToBinList(curList[dataIndex], outputSize)[outputIndex] ==
+                    0,
+                }"
+              >
+                {{ numToBinList(curList[dataIndex], outputSize)[outputIndex] }}
+              </button>
+            </td>
+            <td class="output-value">
+              <input
+                v-if="curList[dataIndex] != -1"
+                v-model="curList[dataIndex]"
+                type="number"
+                :max="2 ** outputSize - 1"
+                min="0"
+              />
+            </td>
+          </tr>
+        </table>
+      </div>
     </div>
   </div>
 </template>
@@ -115,6 +120,7 @@ export default defineComponent({
   data() {
     return {
       curList: [] as number[],
+      tDEnabled: true,
     };
   },
   emits: ["update:modelValue"],
