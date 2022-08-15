@@ -8,6 +8,7 @@
  * onComplete functions, can be used to store things normally inaccessible to
  * inner functions (like the value of `this` for instance). The value
  * `returnValue` is used for the resolve of loops promise.
+ * `break` is used to break the loop early.
  * @param loopContent - The function that is called with every iteration of the
  * loop.
  * @param onComplete - A function called just before the loop resolves. Useful
@@ -38,7 +39,7 @@ export async function longForLoop(
     function doThing() {
       loopContent(index, funcParams);
       index++;
-      if (index < size) {
+      if (index < size && funcParams["break"] != true) {
         if (Date.now() - lastBreak > minTimeBetweenBreaks) {
           setTimeout(doThing, 0);
           lastBreak = Date.now();

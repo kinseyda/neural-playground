@@ -47,6 +47,7 @@
           >
             <td>
               <button
+                :disabled="currentlyTraining"
                 @click="curList[dataIndex] = curList[dataIndex] == -1 ? 0 : -1"
               >
                 {{ curList[dataIndex] != -1 }}
@@ -54,7 +55,11 @@
             </td>
           </tr>
           <tr>
-            <td><button @click="toggleAll">All</button></td>
+            <td>
+              <button @click="toggleAll" :disabled="currentlyTraining">
+                All
+              </button>
+            </td>
           </tr>
         </table>
       </div>
@@ -80,6 +85,7 @@
             >
               <button
                 v-if="curList[dataIndex] != -1"
+                :disabled="currentlyTraining"
                 @click="toggleDatum(dataIndex, outputIndex)"
                 :class="{
                   'button-one':
@@ -96,6 +102,7 @@
             <td class="output-value">
               <input
                 v-if="curList[dataIndex] != -1"
+                :disabled="currentlyTraining"
                 v-model="curList[dataIndex]"
                 type="number"
                 :max="2 ** outputSize - 1"
@@ -116,7 +123,7 @@ import { defineComponent } from "vue";
 
 export default defineComponent({
   name: "GateTrainData",
-  props: ["modelValue", "inputSize", "outputSize"],
+  props: ["modelValue", "inputSize", "outputSize", "currentlyTraining"],
   data() {
     return {
       curList: [] as number[],

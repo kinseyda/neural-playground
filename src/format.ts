@@ -1,4 +1,5 @@
 export function formatTimeString(ms: number): string {
+  ms = Math.round(ms);
   let str = `${ms % 1000}ms`;
   if (ms > 1000) {
     str = `${Math.floor((ms / 1000) % 60)}s ${str}`;

@@ -1,4 +1,3 @@
-feedfeedNet
 <template>
   <div id="outer">
     <div id="io-setup-col">
@@ -7,9 +6,12 @@ feedfeedNet
         <size-selector
           v-model="netSizes"
           :locked="{ inputMax: 8, hiddenMax: 16, outputMax: 8, layersMax: 6 }"
+          :currentlyTraining="currentlyTraining"
         >
         </size-selector>
-        <button @click="newNet()">Reset network</button>
+        <button @click="newNet()" :disabled="currentlyTraining">
+          Reset network
+        </button>
       </div>
       <div id="interact">
         <h2>Input/Output Testing</h2>
@@ -39,7 +41,7 @@ feedfeedNet
       <h2>Train</h2>
       <div>
         Preset data:
-        <select @change="newPreset">
+        <select @change="newPreset" :disabled="currentlyTraining">
           <option
             value="-1"
             :selected="
@@ -76,6 +78,7 @@ feedfeedNet
           v-model="trainData"
           :inputSize="net.sizes[0]"
           :outputSize="net.sizes[net.sizes.length - 1]"
+          :currentlyTraining="currentlyTraining"
         >
         </gate-train-data>
       </div>
@@ -83,9 +86,28 @@ feedfeedNet
         <progress-bar
           :numerator="progressNum"
           :denominator="progressDenom"
+          :currentlyTraining="currentlyTraining"
         ></progress-bar>
-        <div>Epochs: <input v-model="epochs" min="1" type="number" /></div>
-        <button @click="trainWithData(epochs)" id="train-button">
+        <div>
+          Epochs:
+          <input
+            v-model="epochs"
+            min="1"
+            type="number"
+            :disabled="currentlyTraining"
+          />
+          <button
+            @click="currentlyTraining = false"
+            :disabled="!currentlyTraining"
+          >
+            Cancel
+          </button>
+        </div>
+        <button
+          @click="trainWithData(epochs)"
+          id="train-button"
+          :disabled="currentlyTraining"
+        >
           Train on data {{ epochs }} time{{ epochs > 1 ? "s" : "" }}
         </button>
       </div>
@@ -126,6 +148,7 @@ export default defineComponent({
       inputs: [] as number[],
       mostRecentResult: [] as number[],
       trainData: [] as TrainingExample[],
+      currentlyTraining: false,
       epochs: 10000,
       progressNum: 0,
       progressDenom: 1,
@@ -161,16 +184,29 @@ export default defineComponent({
       if (this.trainData.length < 1) {
         return;
       }
+      this.currentlyTraining = true;
       this.progressDenom = epochs;
       this.progressNum = 0;
       setTimeout(
         () =>
-          longForLoop(epochs, 20, {}, (index) => {
-            train(this.trainData, this.net);
-            this.progressNum = index + 1;
-            this.reFeed();
-            this.updateNetVizVals();
-          }),
+          longForLoop(
+            epochs,
+            20,
+            {},
+            (index, params) => {
+              if (!this.currentlyTraining) {
+                params["break"] = true;
+              } else {
+                train(this.trainData, this.net);
+                this.progressNum = index + 1;
+                this.reFeed();
+                this.updateNetVizVals();
+              }
+            },
+            () => {
+              this.currentlyTraining = false;
+            }
+          ),
         0
       );
     },

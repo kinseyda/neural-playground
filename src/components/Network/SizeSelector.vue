@@ -6,21 +6,29 @@
     </colgroup>
     <tr>
       <td v-for="(_, index) in modelValue" :key="index">
-        <button @click="increment(index)">▲</button>
+        <button @click="increment(index)" :disabled="currentlyTraining">
+          ▲
+        </button>
       </td>
-      <td rowspan="3"><button id="add-button" @click="add()">+</button></td>
+      <td rowspan="3">
+        <button id="add-button" @click="add()" :disabled="currentlyTraining">
+          +
+        </button>
+      </td>
     </tr>
     <tr>
       <td v-for="(size, index) in modelValue" :key="index">{{ size }}</td>
     </tr>
     <tr>
       <td v-for="(_, index) in modelValue" :key="index">
-        <button @click="decrement(index)">▼</button>
+        <button @click="decrement(index)" :disabled="currentlyTraining">
+          ▼
+        </button>
       </td>
     </tr>
     <tr>
       <td v-for="(_, index) in modelValue" :key="index">
-        <button @click="remove(index)">-</button>
+        <button @click="remove(index)" :disabled="currentlyTraining">-</button>
       </td>
     </tr>
   </table>
@@ -38,7 +46,7 @@ interface Locked {
 }
 export default defineComponent({
   name: "SizeSelector",
-  props: ["modelValue", "locked"],
+  props: ["modelValue", "locked", "currentlyTraining"],
   data() {
     return {
       curList: this.modelValue as number[],

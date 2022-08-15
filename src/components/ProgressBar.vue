@@ -20,7 +20,7 @@ import { defineComponent } from "vue";
 
 export default defineComponent({
   name: "ProgressBar",
-  props: { numerator: Number, denominator: Number },
+  props: { numerator: Number, denominator: Number, currentlyTraining: Boolean },
   computed: {
     level(): number {
       return (this.numerator || 0) / (this.denominator || 1);
@@ -35,8 +35,16 @@ export default defineComponent({
     };
   },
   watch: {
+    currentlyTraining: {
+      handler(newValue) {
+        if (!newValue) {
+          clearInterval(this.intervalID);
+        }
+      },
+    },
     numerator: {
       handler(newValue, oldValue) {
+        // console.log(`old: ${oldValue}, new: ${newValue}`);
         if (oldValue == 0) {
           this.intervalID = setInterval(() => {
             const now = Date.now();
