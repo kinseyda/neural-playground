@@ -44,7 +44,7 @@ import {
   emnistData,
   loadEmnist,
 } from "@/network/nets/emnist-net";
-import { emnistLabels } from "@/data/emnist-labels";
+import { emnistLabels } from "@/data/EMNIST/emnist-labels";
 import { getHottest } from "@/network/helpers";
 
 export default defineComponent({
