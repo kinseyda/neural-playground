@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="30mm"
+   height="10.000001mm"
+   viewBox="0 0 30 10.000001"
+   version="1.1"
+   id="svg5"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview7"
+     pagecolor="#505050"
+     bordercolor="#ffffff"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="1"
+     inkscape:deskcolor="#505050"
+     inkscape:document-units="mm"
+     showgrid="false" />
+  <defs
+     id="defs2">
+    <inkscape:path-effect
+       effect="skeletal"
+       id="path-effect3262"
+       is_visible="true"
+       lpeversion="1"
+       pattern="M 0,4.9921382 C 0,2.2364779 2.2364779,0 4.9921382,0 c 2.7556604,0 4.9921383,2.2364779 4.9921383,4.9921382 0,2.7556604 -2.2364779,4.9921383 -4.9921383,4.9921383 C 2.2364779,9.9842765 0,7.7477986 0,4.9921382 Z"
+       copytype="single_stretched"
+       prop_scale="0.1"
+       scale_y_rel="false"
+       spacing="0"
+       normal_offset="0"
+       tang_offset="0"
+       prop_units="false"
+       vertical_pattern="false"
+       hide_knot="false"
+       fuse_tolerance="0" />
+  </defs>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <path
+       style="fill:#ff0000;fill-opacity:1;stroke:none;stroke-width:66.4649;stroke-dasharray:none"
+       d="M 4.0730643,4.9822306 C 4.0755028,4.7066754 8.6800448,4.5237669 14.35106,4.5739528 20.022075,4.6241387 24.622659,4.8885084 24.62022,5.1640636 24.617782,5.4396189 20.01324,5.6225273 14.342225,5.5723414 8.6712095,5.5221555 4.0706258,5.2577858 4.0730643,4.9822306 Z"
+       id="path3260"
+       inkscape:path-effect="#path-effect3262"
+       inkscape:original-d="M 4.0730643,4.9822306 24.620219,5.1640636"
+       class="UnoptimicedTransforms"
+       transform="matrix(0.97337063,0,0,0.98525565,1.0353998,0.00165315)" />
+  </g>
+  <g
+     inkscape:groupmode="layer"
+     id="layer2"
+     inkscape:label="Layer 2">
+    <circle
+       id="path3025"
+       style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:0.264601"
+       cx="5"
+       cy="4.9999995"
+       r="4.8676996" />
+    <circle
+       id="path3025-6"
+       style="fill:#15b115;fill-opacity:1;stroke:#000000;stroke-width:0.264601"
+       cx="25"
+       cy="5"
+       r="4.8676996" />
+  </g>
+</svg>
