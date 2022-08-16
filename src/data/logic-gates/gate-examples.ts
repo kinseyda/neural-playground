@@ -138,4 +138,15 @@ export const examples: GateExample[] = [
       };
     }),
   },
+  {
+    name: "Randomized",
+    inputSize: 8,
+    outputSize: 8,
+    data: Array.from(Array(2 ** 8).keys()).map((i) => {
+      return {
+        inputs: numToBinList(i, 8),
+        expectedOutputs: numToBinList(Math.random() * 2 ** 8, 8),
+      };
+    }),
+  },
 ];
