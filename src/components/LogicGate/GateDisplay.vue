@@ -42,15 +42,7 @@
       <div>
         Preset data:
         <select @change="newPreset" :disabled="currentlyTraining">
-          <option
-            value="-1"
-            :selected="
-              -1 ==
-              examples.findIndex(
-                (x) => JSON.stringify(x.data) === JSON.stringify(trainData)
-              )
-            "
-          ></option>
+          <option value="-1" :selected="-1 == curPreset"></option>
           <option
             v-for="(ex, index) in examples"
             :key="index"
@@ -61,12 +53,7 @@
                 ex.outputSize == net.sizes[net.sizes.length - 1]
               )
             "
-            :selected="
-              index ==
-              examples.findIndex(
-                (x) => JSON.stringify(x.data) === JSON.stringify(trainData)
-              )
-            "
+            :selected="index == curPreset"
           >
             {{ ex.name }} {{ ex.inputSize }}/{{ ex.outputSize }}
           </option>
@@ -148,6 +135,7 @@ export default defineComponent({
       inputs: [] as number[],
       mostRecentResult: [] as number[],
       trainData: [] as TrainingExample[],
+      curPreset: -1,
       currentlyTraining: false,
       epochs: 10000,
       progressNum: 0,
@@ -155,6 +143,14 @@ export default defineComponent({
     };
   },
   watch: {
+    trainData: {
+      deep: true,
+      handler() {
+        this.curPreset = examples.findIndex(
+          (x) => JSON.stringify(x.data) === JSON.stringify(this.trainData)
+        );
+      },
+    },
     netSizes: {
       deep: true,
       handler() {
